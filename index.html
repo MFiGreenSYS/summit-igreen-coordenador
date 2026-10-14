@@ -727,6 +727,13 @@ strong{font-weight:650;color:var(--ink)}
 .contato .nome{ font-weight:600; margin-top:2px }
 .contato .obs-c{ font-size:13.5px; color:var(--dim) }
 .contato .c-acoes{ display:flex; gap:8px; flex-wrap:wrap }
+/* a lista completa: uma linha por cidade, com os contatos dela embaixo do nome.
+   Mesma pele das listas de check-in e compra; aqui a linha é bloco, porque a
+   cidade pode ter mais de um fornecedor. */
+.contatos-lista li{ display:block; padding:14px 14px 14px 18px }
+.contatos-lista .contato{ padding:8px 0 0; border-top:0 }
+.contatos-lista .contato + .contato{ margin-top:8px; padding-top:12px; border-top:1px solid var(--linha) }
+@container (max-width:520px){ .contatos-lista .contato .c-acoes{ width:100% } .contatos-lista .contato .c-acoes .mini{ flex:1 } }
 
 /* RODAPÉ */
 .rodape{ padding:48px 24px 40px; border-top:1px solid var(--linha); text-align:center }
@@ -1115,7 +1122,7 @@ strong{font-weight:650;color:var(--ink)}
     <div class="dentro">
       <span class="rotulo" data-reveal style="--i:0">Fornecedores</span>
       <h1 data-reveal style="--i:1">Contatos da <em>cidade</em></h1>
-      <p data-reveal style="--i:2">Audiovisual, local do evento e outros fornecedores, por cidade.</p>
+      <p data-reveal style="--i:2">O local do evento e o contato de cada cidade, para ligar ou chamar no WhatsApp.</p>
       <div class="meu-bloco centro" data-reveal style="--i:3">
         <span class="escolha" aria-hidden="true">Escolha sua cidade <svg class="ic"><use href="#i-baixo"/></svg></span>
         <label class="seletor">
@@ -1137,7 +1144,8 @@ strong{font-weight:650;color:var(--ink)}
         <span class="rotulo">Todas as cidades</span>
         <h2 class="titulo">Lista <em>completa</em></h2>
       </header>
-      <div class="grade g2" id="contatos-todos" style="align-items:start"></div>
+      <label class="busca"><svg class="ic"><use href="#i-busca"/></svg><span class="sr">Buscar cidade</span><input type="search" placeholder="Buscar cidade, estado ou local" data-busca="contatos" autocomplete="off"></label>
+      <ul class="cidades contatos-lista" id="contatos-todos"></ul>
     </div>
   </div>
 </section>
@@ -1282,18 +1290,48 @@ const DADOS = {
     { nome: 'Cuiabá',         uf: 'MT', evento: '2026-10-25', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-25-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-08-11' }
   ],
 
-  /* OS FORNECEDORES — por cidade, pelo nome exato da lista acima.
-     ⚠ AINDA VAZIO: a lista com os telefones não veio junto (14/10/2026).
-     Enquanto a cidade não tiver linha aqui, a aba mostra "em atualização".
-     Formato de cada contato:
-       { tipo: 'Audiovisual', nome: 'Fulano Som e Luz', telefone: '(31) 99999-0000', obs: 'técnico do dia' }
-     `telefone` vira botão de ligar e de WhatsApp. */
-  fornecedores: {
-    // 'Belo Horizonte': [
-    //   { tipo: 'Audiovisual',      nome: '', telefone: '' },
-    //   { tipo: 'Local do evento',  nome: '', telefone: '' }
-    // ],
-  },
+  /* OS FORNECEDORES — da planilha "Contato LOCAL SUMMIT OUTUBRO.xlsx" (14/10/2026):
+     o local do evento e um telefone de contato, em 27 cidades.
+     ⚠ 4 DELAS NÃO ESTÃO EM `cidades` (Aracaju, Belém, Campinas, Pelotas): vieram na
+     planilha, mas sem link de check-in nem de compra na lista da Jennifer. Aparecem
+     só na lista completa da aba Contatos; quando os links chegarem, é só pôr a
+     cidade em `cidades` e ela passa a ter seletor, check-in e ingressos.
+     O telefone está COMO VEIO na planilha; quem formata é `fone()` no script:
+     · 10 dígitos com o 3º entre 6 e 9 é celular no formato antigo e ganha o 9
+       ("62 8591-7147" vira (62) 98591-7147) — desde 2016 todo celular tem 9 dígitos;
+     · celular mostra Ligar e WhatsApp; fixo (3º dígito 2 a 5) só Ligar.
+     Grafias corrigidas da planilha: "Aracajú" -> Aracaju, e três nomes em caixa alta.
+     Para pôr outro fornecedor na cidade, acrescente na lista `contatos`:
+       { tipo: 'Audiovisual', nome: 'Fulano Som e Luz', telefone: '31 99999-0000', obs: 'técnico do dia' } */
+  fornecedores: [
+    { cidade: 'Aracaju',        uf: 'SE', contatos: [ { tipo: 'Local do evento', nome: 'Arcus', telefone: '79 9175 0034' } ] },
+    { cidade: 'Belo Horizonte', uf: 'MG', contatos: [ { tipo: 'Local do evento', nome: 'Royal Center', telefone: '3121020000' } ] },
+    { cidade: 'Belém',          uf: 'PA', contatos: [ { tipo: 'Local do evento', nome: 'CDL', telefone: '91 8520 1802' } ] },
+    { cidade: 'Brasília',       uf: 'DF', contatos: [ { tipo: 'Local do evento', nome: 'S4 Eventos', telefone: '61 86022425' } ] },
+    { cidade: 'Campinas',       uf: 'SP', contatos: [ { tipo: 'Local do evento', nome: 'Royal Palm Tower', telefone: '1921178002' } ] },
+    { cidade: 'Campo Grande',   uf: 'MS', contatos: [ { tipo: 'Local do evento', nome: 'CDL', telefone: '(67) 9919-7920' } ] },
+    { cidade: 'Cuiabá',         uf: 'MT', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Inter', telefone: '6592846032' } ] },
+    { cidade: 'Curitiba',       uf: 'PR', contatos: [ { tipo: 'Local do evento', nome: 'Pestana Curitiba', telefone: '4130179900' } ] },
+    { cidade: 'Florianópolis',  uf: 'SC', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Castelmar', telefone: '48 3952-3215' } ] },
+    { cidade: 'Fortaleza',      uf: 'CE', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Sonata de Iracema', telefone: '85 9145-4982' } ] },
+    { cidade: 'Goiânia',        uf: 'GO', contatos: [ { tipo: 'Local do evento', nome: 'Alpha Park', telefone: '62 8591-7147' } ] },
+    { cidade: 'João Pessoa',    uf: 'PB', contatos: [ { tipo: 'Local do evento', nome: 'Auditório Cabo Branco', telefone: '83 9360-9832' } ] },
+    { cidade: 'Maceió',         uf: 'AL', contatos: [ { tipo: 'Local do evento', nome: 'San Marino Suíte', telefone: '8293082903' } ] },
+    { cidade: 'Manaus',         uf: 'AM', contatos: [ { tipo: 'Local do evento', nome: 'CDL', telefone: '92 9371 1104' } ] },
+    { cidade: 'Natal',          uf: 'RN', contatos: [ { tipo: 'Local do evento', nome: 'Golden Tulip', telefone: '8436460100' } ] },
+    { cidade: 'Palmas',         uf: 'TO', contatos: [ { tipo: 'Local do evento', nome: 'Colegio Selletos', telefone: '63 9249-0000' } ] },
+    { cidade: 'Pelotas',        uf: 'RS', contatos: [ { tipo: 'Local do evento', nome: 'Eventos Curi Palace Hotel', telefone: '53 9945-1974' } ] },
+    { cidade: 'Porto Alegre',   uf: 'RS', contatos: [ { tipo: 'Local do evento', nome: 'Deville', telefone: '5133735000' } ] },
+    { cidade: 'Recife',         uf: 'PE', contatos: [ { tipo: 'Local do evento', nome: 'Marante Executive Hotel', telefone: '8130358800' } ] },
+    { cidade: 'Ribeirão Preto', uf: 'SP', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Taiwan', telefone: '1640098899' } ] },
+    { cidade: 'Rio de Janeiro', uf: 'RJ', contatos: [ { tipo: 'Local do evento', nome: 'Riali Brisa Barra Hotel', telefone: '21 99612-0916' } ] },
+    { cidade: 'Salvador',       uf: 'BA', contatos: [ { tipo: 'Local do evento', nome: 'Mercure Salvador Rio Vermelho', telefone: '7191273625' } ] },
+    { cidade: 'São Luís',       uf: 'MA', contatos: [ { tipo: 'Local do evento', nome: 'Gree Hotel', telefone: '98 84786375' } ] },
+    { cidade: 'São Paulo',      uf: 'SP', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Panamby', telefone: '11934497622' } ] },
+    { cidade: 'Teresina',       uf: 'PI', contatos: [ { tipo: 'Local do evento', nome: 'Hotel Uchoa', telefone: '86 8842-6434' } ] },
+    { cidade: 'Uberlândia',     uf: 'MG', contatos: [ { tipo: 'Local do evento', nome: 'Executive Inn', telefone: '3432180500' } ] },
+    { cidade: 'Vitória',        uf: 'ES', contatos: [ { tipo: 'Local do evento', nome: 'America Empresarial', telefone: '27 98868-0039' } ] }
+  ],
 
   midias: [
     { titulo: 'Antes da abertura', itens: [
@@ -1382,7 +1420,7 @@ const DADOS = {
     { aba: 'checkin',   icone: 'qr',       titulo: 'Check-in',          texto: 'O link de check-in da sua cidade e o passo a passo da leitura dos QR Codes.' },
     { aba: 'midias',    icone: 'camera',   titulo: 'Mídias',            texto: 'O que registrar em foto e vídeo, e as dicas para gravar bem com o celular.' },
     { aba: 'checklist', icone: 'lista',    titulo: 'Checklist',         texto: 'Tudo o que fazer antes, na chegada e durante o evento, para ir marcando.' },
-    { aba: 'contatos',  icone: 'telefone', titulo: 'Contatos',          texto: 'Audiovisual, local do evento e outros fornecedores da sua cidade.' }
+    { aba: 'contatos',  icone: 'telefone', titulo: 'Contatos',          texto: 'O local do evento da sua cidade e o telefone para ligar ou chamar no WhatsApp.' }
   ]
 };
 </script>
@@ -1574,29 +1612,40 @@ const DADOS = {
       '</div>';
   }
 
+  /* O TELEFONE — chega como veio na planilha ("62 8591-7147", 3121020000...).
+     Celular antigo de 8 dígitos ganha o 9; ver o comentário de `fornecedores`. */
+  function fone(bruto){
+    let d = String(bruto || '').replace(/\D/g, '');
+    if (d.length === 12 || d.length === 13) d = d.replace(/^55/, '');
+    if (d.length === 10 && /[6-9]/.test(d[2])) d = d.slice(0, 2) + '9' + d.slice(2);
+    if (d.length !== 10 && d.length !== 11) return { txt: String(bruto || ''), num: d, movel: false };
+    const movel = d.length === 11;
+    const txt = '(' + d.slice(0, 2) + ') ' + d.slice(2, movel ? 7 : 6) + '-' + d.slice(movel ? 7 : 6);
+    return { txt, num: '55' + d, movel };
+  }
   function contatoHTML(f){
-    const tel = (f.telefone || '').replace(/\D/g, '');
-    const br = tel.length >= 10 && tel.length <= 11 ? '55' + tel : tel;
+    const t = f.telefone ? fone(f.telefone) : null;
     return '<div class="contato"><div>' +
       '<div class="tipo">' + esc(f.tipo || 'Contato') + '</div>' +
       '<div class="nome">' + esc(f.nome || '—') + '</div>' +
-      (f.telefone ? '<div class="obs-c num">' + esc(f.telefone) + (f.obs ? ' · ' + esc(f.obs) : '') + '</div>' : (f.obs ? '<div class="obs-c">' + esc(f.obs) + '</div>' : '')) +
-      '</div>' + (tel ? '<div class="c-acoes">' +
-        '<a class="mini" href="tel:+' + br + '">' + ic('telefone') + 'Ligar</a>' +
-        '<a class="mini" href="https://wa.me/' + br + '" target="_blank" rel="noopener">' + ic('conversa') + 'WhatsApp</a>' +
+      (t ? '<div class="obs-c num">' + esc(t.txt) + (f.obs ? ' · ' + esc(f.obs) : '') + '</div>' : (f.obs ? '<div class="obs-c">' + esc(f.obs) + '</div>' : '')) +
+      '</div>' + (t && t.num ? '<div class="c-acoes">' +
+        '<a class="mini" href="tel:+' + t.num + '">' + ic('telefone') + 'Ligar</a>' +
+        (t.movel ? '<a class="mini" href="https://wa.me/' + t.num + '" target="_blank" rel="noopener">' + ic('conversa') + 'WhatsApp</a>' : '') +
       '</div>' : '') + '</div>';
   }
-  const semContato = '<p class="txt">Contatos em atualização. Assim que a lista dos fornecedores desta cidade chegar, ela aparece aqui.</p>';
+  const contatosDe = c => (D.fornecedores.find(f => f.cidade === c.nome && f.uf === c.uf) || {}).contatos || [];
+  const semContato = '<p class="txt">Contatos em atualização. Assim que o contato desta cidade chegar, ele aparece aqui.</p>';
   function pintaMeusContatos(){
     const el = $('#meus-contatos');
-    if (!cidade){ el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima para ver os fornecedores da sua cidade.</p>'; return; }
-    const lista = D.fornecedores[cidade.nome] || [];
-    el.innerHTML = '<span class="quem">Fornecedores</span><h3 style="margin-top:6px;font-size:22px;margin-bottom:8px">' + esc(rotuloCidade(cidade)) + '</h3>' +
+    if (!cidade){ el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima para ver o local do evento e o contato da sua cidade.</p>'; return; }
+    const lista = contatosDe(cidade);
+    el.innerHTML = '<span class="quem">Contatos</span><h3 style="margin-top:6px;font-size:22px;margin-bottom:8px">' + esc(rotuloCidade(cidade)) + '</h3>' +
       (lista.length ? lista.map(contatoHTML).join('') : semContato);
   }
 
   /* ---------- AS LISTAS DE TODAS AS CIDADES ---------- */
-  const filtros = { compra: '', checkin: '' };
+  const filtros = { compra: '', checkin: '', contatos: '' };
   function pintaListas(){
     const passa = (c, f) => !f || normal(c.nome + ' ' + c.uf).includes(normal(f));
     const eMinha = c => cidade && chaveCidade(c) === chaveCidade(cidade);
@@ -1613,6 +1662,15 @@ const DADOS = {
       const ev = dia(c.evento);
       return '<li' + minha(c) + '><span class="c-nome">' + esc(rotuloCidade(c)) + tag(c) + '<small>' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + ' · check-in ' + D.horario.checkin + '</small></span>' +
         '<span class="c-acoes">' + btnCopiar(c.checkin, 'Copiar', 'Link de check-in copiado') + btnAbrir(c.checkin, 'Abrir', true) + '</span></li>';
+    }).join('') : '<li class="vazio">Nenhuma cidade com esse nome.</li>';
+    /* a lista completa de contatos sai de `fornecedores` (27 cidades), não de
+       `cidades` (23): a busca também acha pelo nome do local */
+    const fs = D.fornecedores.slice().sort((a, b) => a.cidade.localeCompare(b.cidade, 'pt-BR')).filter(f => !filtros.contatos ||
+      normal(f.cidade + ' ' + f.uf + ' ' + f.contatos.map(x => x.nome).join(' ')).includes(normal(filtros.contatos)));
+    $('#contatos-todos').innerHTML = fs.length ? fs.map(f => {
+      const sua = eMinha({ nome: f.cidade, uf: f.uf });
+      return '<li' + (sua ? ' class="minha"' : '') + '><span class="c-nome">' + esc(f.cidade + ' – ' + f.uf) +
+        (sua ? ' <em class="tag-minha">Sua cidade</em>' : '') + '</span>' + f.contatos.map(contatoHTML).join('') + '</li>';
     }).join('') : '<li class="vazio">Nenhuma cidade com esse nome.</li>';
   }
   $$('[data-busca]').forEach(inp => inp.addEventListener('input', () => { filtros[inp.dataset.busca] = inp.value; pintaListas(); }));
