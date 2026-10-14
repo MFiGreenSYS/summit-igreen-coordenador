@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portal do Coordenador · iGreen Summit</title>
+<meta name="description" content="Portal do Coordenador do iGreen Summit: como apresentar a APN Digital, condução e cronograma do evento, ingressos e lotes, links de check-in por cidade, orientações de mídias, checklist operacional e materiais no Drive.">
+<meta name="theme-color" content="#010101">
+<link rel="icon" type="image/svg+xml" href="assets/icone.svg">
+<link rel="apple-touch-icon" href="assets/icone.svg">
+<link rel="preload" href="assets/fontes/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+
+<style>
+/* ============================================================
+   PORTAL DO COORDENADOR — iGREEN SUMMIT.
+   Criado em 14/10/2026 a pedido do Fábio e da Jennifer (áudios em
+   ../referencias/audios): "organiza igual você fez do Cruzeiro", um
+   lugar só para o coordenador entrar e saber o que fazer no dia do
+   evento, para o grupo do WhatsApp receber o link do portal em vez
+   dos textos gigantes.
+
+   O PADRÃO É O DO PORTAL DO CRUZEIRO (../Cruzeiro-Pagina-2026/site),
+   que já é o do Cruzeiro Público: campo #010101, texto #F3F3F3,
+   acento #18FF00, barra de vidro com o tubo neon, Geist do disco e o
+   orbe verde preso atrás da página.
+
+   VARIÁVEL ÚNICA: a CIDADE escolhida. Com a data de hoje, ela decide
+   o lote vigente, o link de compra, o link de check-in, a contagem do
+   herói e os contatos. Fica guardada no navegador de quem escolheu.
+
+   AS ABAS: Início · Ingressos · Check-in · Mídias · Checklist ·
+   Contatos. "Clica e abre uma aba para isso" (Fábio). Cada aba é uma
+   <section data-aba>; o endereço (#ingressos) diz qual está aberta,
+   então o link de uma aba pode ir direto para o grupo.
+
+   SEM BACKEND. Nada grava. Todo o conteúdo mora no bloco OS DADOS.
+   ============================================================ */
+
+@font-face{
+  font-family:'Geist'; src:url('assets/fontes/Geist-Variable.woff2') format('woff2');
+  font-weight:100 900; font-display:swap;
+}
+
+:root{
+  --acc:#18FF00;        --acc-rgb:24,255,0;
+  --on-acc:#02220A;
+  --campo:#010101;      --campo-rgb:1,1,1;
+  --ink:#F3F3F3;        --ink-rgb:243,243,243;
+  --dim:rgba(var(--ink-rgb),.66);
+  --dim-2:rgba(var(--ink-rgb),.46);
+  --linha:rgba(var(--ink-rgb),.12);
+  --vidro:rgba(35,35,35,.8);
+  --cartao:rgba(18,18,18,.66);
+  --opcao:#111111;      /* fundo da lista aberta do <select> no Windows: opaco, ou some */
+  --superficie:rgba(var(--luz-rgb),.03);
+  --luz-rgb:255,255,255;
+  --sombra-rgb:0,0,0;
+  --aviso:#FFC857;      --aviso-rgb:255,200,87;
+  --mola:cubic-bezier(.16,1.1,.3,1);
+  --font:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --larg:1160px;
+  --barra:96px;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* SÓ o html pinta o campo (lição do Cruzeiro): com o body pintando
+   também, o fundo do body cobre a camada fixa de z-index:-1 do orbe. */
+html{background:var(--campo)}
+body{
+  font-family:var(--font); color:var(--ink); -webkit-font-smoothing:antialiased;
+  font-size:16px; line-height:1.55;
+  overflow-x:clip;
+}
+button,input,select{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+strong{font-weight:650;color:var(--ink)}
+
+.pular{
+  position:absolute;left:-9999px;top:8px;z-index:99;
+  padding:10px 16px;border-radius:999px;background:var(--acc);color:var(--on-acc);
+  font-size:13px;font-weight:700;text-decoration:none;
+}
+.pular:focus{left:12px}
+
+/* O FUNDO — o orbe do institucional, o mesmo arquivo do Cruzeiro
+   (91 KB). Preso atrás de tudo; cada aba passa por cima dele. */
+.fundo-orbe{ position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden }
+.fundo-orbe video{
+  width:100%; height:100%; object-fit:cover; opacity:.7;
+  -webkit-mask-image:radial-gradient(140% 110% at 50% 50%, #000 50%, transparent 100%);
+          mask-image:radial-gradient(140% 110% at 50% 50%, #000 50%, transparent 100%);
+}
+
+/* ============================================================
+   BARRA DO TOPO — a do Cruzeiro: marca, pílula de vidro com o TUBO
+   NEON sobre a aba aberta, chamada à direita (o Drive).
+   ============================================================ */
+.topo{
+  position:fixed; inset:0 0 auto 0; z-index:50; height:var(--barra);
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:0 24px;
+}
+/* O VÉU DA BARRA — o do Cruzeiro: escuro e desfocado no alto, some em
+   degradê 40px abaixo da barra, para o conteúdo não passar nítido atrás.
+   padrao-serjao: excecao blend-tela-cheia — o inset:0 lê como tela cheia,
+   mas a camada tem a altura da barra mais 40px (136px no largo). */
+.topo::before{
+  content:""; position:absolute; inset:0 0 -40px 0; z-index:-1; pointer-events:none;
+  background:linear-gradient(180deg, rgba(var(--campo-rgb),.9) 0%, rgba(var(--campo-rgb),.6) 55%, transparent 100%);
+  -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  -webkit-mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+          mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+}
+.topo .marca{ display:flex; align-items:center; gap:10px; min-height:44px; flex:none; text-decoration:none }
+.topo .marca img{ width:44px; height:auto }
+.topo .marca span{ font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--dim) }
+.vidro{
+  background:var(--vidro);
+  -webkit-backdrop-filter:blur(20px) saturate(1.3); backdrop-filter:blur(20px) saturate(1.3);
+  border:.8px solid var(--linha);
+  box-shadow:0 8px 24px rgba(var(--sombra-rgb),.3);
+}
+.topo nav.pilula{ position:relative; display:flex; align-items:center; padding:6px; border-radius:999px }
+.topo nav.pilula a{
+  position:relative; display:inline-flex; align-items:center; min-height:44px; padding:0 16px;
+  border-radius:999px; text-decoration:none; white-space:nowrap;
+  font-size:13px; font-weight:500; letter-spacing:-.003em; color:var(--dim);
+  transition:color .2s, background-color .2s;
+}
+.topo nav.pilula a:hover{ color:var(--ink); background:rgba(var(--luz-rgb),.04) }
+.topo nav.pilula a[aria-current]{ color:var(--ink); font-weight:600; background:rgba(var(--luz-rgb),.05) }
+.tubo{
+  position:absolute; left:0; top:-3px; width:28px; height:4px; border-radius:2px;
+  background:var(--acc);
+  box-shadow:0 0 16px 2px var(--acc), 0 0 40px 6px rgba(var(--acc-rgb),.5);
+  transform:translateX(var(--tubo-x,0px)); opacity:var(--tubo-o,0);
+  /* padrao-serjao: excecao curva-fora-do-padrao — a mesma do Cruzeiro: o
+     tubo anda numa mola SEM quique. Com o 1,1 da curva da casa ele passaria
+     do item e voltaria. */
+  transition:transform .45s cubic-bezier(.16,1,.3,1), opacity .3s;
+}
+.chamada{
+  display:inline-flex; align-items:center; gap:12px; min-height:44px;
+  padding:6px 6px 6px 16px; border-radius:999px; text-decoration:none;
+  font-size:13px; font-weight:500; color:var(--ink);
+  transition:transform .2s;
+}
+.chamada:hover{ transform:translateY(-1px) }
+.chamada i{
+  display:grid; place-items:center; width:32px; height:32px; border-radius:999px; flex:none;
+  background:var(--acc); color:var(--on-acc); font-style:normal;
+}
+.chamada .ic{ width:16px; height:16px }
+.topo .dir{ display:flex; align-items:center; gap:10px }
+.abre-menu{ display:none; width:44px; height:44px; border-radius:999px; place-items:center }
+.menu-topo{
+  position:absolute; top:calc(var(--barra) - 12px); left:12px; right:12px;
+  border-radius:20px; padding:8px 18px;
+}
+.menu-topo a{
+  display:flex; align-items:center; gap:10px; min-height:48px; text-decoration:none;
+  border-bottom:1px solid var(--linha); font-size:15px; color:var(--dim);
+}
+.menu-topo a:last-child{ border-bottom:0 }
+.menu-topo a[aria-current]{ color:var(--ink); font-weight:600 }
+.menu-topo a[aria-current]::before{ content:""; width:5px; height:5px; border-radius:9px; background:var(--acc) }
+@media (max-width:1060px){
+  .topo nav.pilula{ display:none }
+  .abre-menu{ display:grid }
+  :root{ --barra:76px }
+  .topo .marca img{ width:38px }
+}
+@media (max-width:520px){
+  .chamada span{ display:none } .chamada{ padding:6px }
+  .topo{ padding:0 16px }
+  .topo .marca span{ display:none }
+}
+
+/* ============================================================
+   O HERÓI (só no Início) — a marca do Summit, o título e o seletor
+   de cidade. Não ocupa a tela inteira como no Cruzeiro: quem abre
+   aqui é o coordenador com pressa no dia do evento, e o link da APN
+   tem de aparecer sem rolar. 78svh deixa a borda do primeiro cartão
+   aparecer no notebook de 946 de altura.
+   ============================================================ */
+.heroi{
+  position:relative; min-height:min(78vh,820px);
+  display:flex; align-items:center; justify-content:center;
+  padding:calc(var(--barra) + 24px) 24px 56px; text-align:center; overflow:hidden;
+}
+@supports (height:1svh){ .heroi{ min-height:min(78svh,820px) } }
+.heroi .brilho{ position:absolute; inset:0; pointer-events:none; overflow:hidden }
+.heroi .brilho::before{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(52% 46% at 50% 58%, rgba(var(--acc-rgb),.12), rgba(var(--acc-rgb),.04) 46%, transparent 72%);
+}
+.particula{
+  position:absolute; bottom:-12px; left:calc(var(--x) * 1%);
+  width:calc(2px + var(--t) * 2px); height:calc(2px + var(--t) * 2px);
+  border-radius:50%; background:var(--acc); opacity:0;
+  box-shadow:0 0 8px rgba(var(--acc-rgb),.6);
+  animation:subir-particula calc(11s + var(--t) * 9s) linear infinite;
+  animation-delay:calc(var(--i) * -.83s);
+}
+@keyframes subir-particula{
+  0%  { transform:translate(0,0); opacity:0 }
+  12% { opacity:.55 }
+  70% { opacity:.35 }
+  100%{ transform:translate(calc(var(--d) * 40px), -62vh); opacity:0 }
+}
+.heroi-dentro{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:18px; max-width:860px }
+/* A MARCA DO SUMMIT — o logo oficial (07_Marca-Assets/Igreen.svg, Regra 4:
+   nunca redesenhado) com SUMMIT espaçado embaixo, como nas artes do evento.
+   O espaçamento .62em faz a palavra ter a largura do logo em 200px. */
+.marca-summit{ display:flex; flex-direction:column; align-items:center; gap:6px }
+.marca-summit img{ width:clamp(150px,22vw,220px); height:auto; filter:drop-shadow(0 0 26px rgba(var(--acc-rgb),.3)) }
+.marca-summit b{
+  font-size:clamp(17px,2.4vw,24px); font-weight:600; letter-spacing:.62em; margin-right:-.62em;
+  color:var(--ink); text-transform:uppercase;
+}
+.rotulo-heroi{
+  display:inline-flex; align-items:center; gap:10px; padding:7px 14px; border-radius:999px;
+  border:1px solid rgba(var(--acc-rgb),.4); background:rgba(var(--acc-rgb),.06);
+  font-size:11px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--acc);
+}
+.heroi h1{
+  font-size:clamp(40px,6.4vw,76px); font-weight:700; line-height:.98; letter-spacing:-.035em; text-wrap:balance;
+}
+.heroi h1 em{ font-style:normal; color:var(--acc); text-shadow:0 0 42px rgba(var(--acc-rgb),.4) }
+.heroi .apoio{ max-width:620px; font-size:clamp(15px,1.6vw,18px); color:var(--dim); text-wrap:pretty }
+.acoes{ display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:6px }
+
+/* O SEU SUMMIT — a linha que responde "quando é o meu" assim que a
+   cidade é escolhida.
+   ESPAÇAMENTO (print do Matheus, 14/10/2026: o "dias" colado na borda).
+   Era 10px 10px 10px 18px: o texto terminava a 11px da borda direita, que
+   numa pílula de 66px de altura é toda arco — a letra encostava na curva.
+   E o seletor ficava a 19px da esquerda e 11px do topo, fora de centro.
+   Agora: 7px em volta do seletor (pílula dentro de pílula, concêntrica,
+   como a .chamada da barra) e 26px à direita do texto, perto do raio da
+   pílula (58/2 = 29), para a última letra cair na parte reta. */
+.meu-summit{
+  display:flex; align-items:center; gap:10px 16px;
+  padding:7px 26px 7px 7px; border-radius:999px; font-size:14px; line-height:1.45; color:var(--dim);
+}
+/* SEM flex-wrap: com ele, entre 641 e ~730px a pílula empilhava seletor e
+   texto e continuava redonda (91px de altura, seletor colado no arco de
+   cima). Agora quem quebra é o texto, dentro da pílula, em até 2 linhas;
+   a pílula só vira cartão empilhado no celular (640px para baixo). */
+#meu-summit-txt{ min-width:0; text-align:left; text-wrap:pretty }
+.meu-summit .seletor{ flex:none }
+.meu-summit b{ color:var(--ink); font-weight:600 }
+.meu-summit .faltam{ color:var(--acc); font-weight:600 }
+@media (max-width:640px){ .meu-summit{ border-radius:22px; padding:14px 16px 16px; flex-direction:column; gap:12px } #meu-summit-txt{ text-align:center } }
+
+/* O SELETOR DE CIDADE — um <select> nativo vestido: no celular abre a
+   roda do sistema, que é o melhor seletor de lista que existe ali. */
+.seletor{ position:relative; display:inline-flex; align-items:center }
+.seletor select{
+  appearance:none; -webkit-appearance:none; min-height:44px; padding:0 42px 0 16px; border-radius:999px;
+  background:rgba(var(--luz-rgb),.06); border:1px solid rgba(var(--acc-rgb),.45);
+  font-size:14px; font-weight:600; color:var(--ink); cursor:pointer; max-width:100%;
+}
+.seletor select:hover{ border-color:var(--acc) }
+.seletor select option{ background:var(--opcao); color:var(--ink) }
+.seletor .ic{ position:absolute; right:14px; width:16px; height:16px; pointer-events:none; color:var(--acc) }
+
+/* O DESTAQUE "ESCOLHA SUA CIDADE" — pedido do Matheus (14/10/2026). A
+   cidade é a variável única do portal: sem ela, metade das abas mostra
+   "escolha a sua cidade". Por isso o rótulo de acento em cima de TODO
+   seletor, com a seta apontando para ele.
+   No herói o rótulo alinha à esquerda, em cima do seletor (que fica na
+   ponta esquerda da pílula): 7px da pílula + 16px do texto do select =
+   o "E" começa na mesma coluna do nome da cidade. Nas capas, centrado.
+   Enquanto nenhuma cidade foi escolhida (html.sem-cidade), a seta desce
+   e sobe e o seletor respira; escolhida, os dois param. A respiração é
+   o ::after com sombra ESTÁTICA variando só opacity. */
+.meu-bloco{ margin-top:8px; display:flex; flex-direction:column; align-items:flex-start; gap:10px; max-width:100% }
+.meu-bloco.centro{ align-items:center; margin-top:4px }
+.escolha{
+  display:inline-flex; align-items:center; gap:7px; padding-left:23px;
+  font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--acc); text-shadow:0 0 18px rgba(var(--acc-rgb),.45);
+}
+.meu-bloco.centro .escolha{ padding-left:0 }
+.escolha .ic{ width:15px; height:15px; stroke-width:2.4 }
+.sem-cidade .escolha .ic{ animation:aponta 1.6s cubic-bezier(.65,0,.35,1) infinite }
+@keyframes aponta{ 0%,100%{ transform:translateY(-2px) } 50%{ transform:translateY(3px) } }
+.seletor::after{
+  content:""; position:absolute; inset:-4px; border-radius:999px; pointer-events:none; opacity:0;
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.6), 0 0 26px rgba(var(--acc-rgb),.45);
+}
+.sem-cidade .seletor::after{ animation:respira 2.4s ease-in-out infinite }
+@keyframes respira{ 0%,100%{ opacity:0 } 50%{ opacity:1 } }
+@media (max-width:640px){ .meu-bloco{ align-items:center; align-self:stretch } .escolha{ padding-left:0 } }
+
+/* BOTÕES — os do institucional, via Cruzeiro */
+.botao-principal{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px; border-radius:999px;
+  padding:14px 26px; min-height:48px; text-decoration:none;
+  font-size:15px; font-weight:600; letter-spacing:.01em;
+  background:var(--acc); color:var(--on-acc);
+  box-shadow:0 0 34px rgba(var(--acc-rgb),.35);
+  transition:transform .25s var(--mola), box-shadow .25s;
+}
+.botao-principal:hover{ transform:translateY(-2px); box-shadow:0 0 50px rgba(var(--acc-rgb),.55) }
+.botao-principal:active{ transform:scale(.97) }
+.botao-principal .ic{ width:18px; height:18px }
+.botao-vazio{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px; border-radius:999px; min-height:48px;
+  padding:13px 24px; text-decoration:none; font-size:15px; font-weight:500; color:var(--ink);
+  border:1px solid rgba(var(--ink-rgb),.24); transition:border-color .25s, transform .25s var(--mola);
+}
+.botao-vazio:hover{ border-color:rgba(var(--acc-rgb),.7); transform:translateY(-2px) }
+.botao-vazio .ic{ width:18px; height:18px }
+/* botão pequeno das listas — copiar / abrir */
+.mini{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; min-width:44px;
+  padding:0 14px; border-radius:999px; text-decoration:none; white-space:nowrap;
+  font-size:13px; font-weight:600; color:var(--ink);
+  background:rgba(var(--luz-rgb),.05); border:1px solid var(--linha);
+  transition:border-color .2s, background-color .2s, color .2s;
+}
+.mini:hover{ border-color:rgba(var(--acc-rgb),.6) }
+.mini.acc{ background:var(--acc); color:var(--on-acc); border-color:transparent }
+.mini .ic{ width:16px; height:16px }
+.mini.copiado{ color:var(--acc); border-color:rgba(var(--acc-rgb),.6) }
+
+/* ============================================================
+   ABAS E SEÇÕES — transparentes (Lei 12): quem pinta é a página.
+   ============================================================ */
+.aba{ min-height:100svh; padding-bottom:40px }
+.capa{                                   /* o cabeçalho das abas que não são o Início */
+  padding:calc(var(--barra) + clamp(40px,7vw,88px)) 24px clamp(28px,4vw,48px); text-align:center;
+}
+.capa .dentro{ max-width:760px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:14px }
+.capa h1{ font-size:clamp(36px,5.4vw,64px); font-weight:700; line-height:1; letter-spacing:-.035em; text-wrap:balance }
+.capa h1 em{ font-style:normal; color:var(--acc); text-shadow:0 0 42px rgba(var(--acc-rgb),.4) }
+.capa p{ color:var(--dim); font-size:clamp(15px,1.5vw,17px); max-width:620px; text-wrap:pretty }
+
+.secao{
+  container-type:inline-size; position:relative;
+  padding:clamp(48px,6vw,88px) 24px;
+  scroll-margin-top:calc(var(--barra) - 8px);
+}
+.secao .dentro{ position:relative; width:min(var(--larg),100%); margin-inline:auto }
+.cab{ max-width:720px; margin:0 auto clamp(28px,4cqw,48px); text-align:center }
+.rotulo{
+  display:inline-flex; align-items:center; gap:12px;
+  font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--acc);
+}
+.rotulo::before,.rotulo::after{ content:""; width:22px; height:1px; background:rgba(var(--acc-rgb),.5) }
+.titulo{
+  margin-top:14px; font-size:clamp(28px,4cqw,46px); font-weight:700;
+  line-height:1.06; letter-spacing:-.03em; text-wrap:balance;
+}
+.titulo em{ font-style:normal; color:var(--acc) }
+.cab p{ margin-top:12px; color:var(--dim); text-wrap:pretty }
+
+/* O CARTÃO — superfície de vidro escuro com borda de 1px (Lei 7) */
+.cartao{
+  position:relative; border-radius:22px; padding:clamp(20px,2.6cqw,32px);
+  background:var(--cartao); border:1px solid var(--linha);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+}
+.cartao h3{ font-size:19px; font-weight:650; letter-spacing:-.015em; line-height:1.25 }
+.cartao > p, .cartao .txt{ color:var(--dim); margin-top:8px; text-wrap:pretty }
+.cartao.luz{ border-color:rgba(var(--acc-rgb),.35); box-shadow:0 0 60px rgba(var(--acc-rgb),.08), inset 0 0 0 1px rgba(var(--acc-rgb),.06) }
+.cartao.luz::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(70% 90% at 0% 0%, rgba(var(--acc-rgb),.07), transparent 60%);
+}
+.grade{ display:grid; gap:16px }
+.g2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+.g3{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+.g4{ grid-template-columns:repeat(4,minmax(0,1fr)) }
+@container (max-width:900px){ .g4{ grid-template-columns:repeat(2,minmax(0,1fr)) } .g3{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
+@container (max-width:620px){ .g2,.g3,.g4{ grid-template-columns:minmax(0,1fr) } }
+
+.selo-ic{
+  display:grid; place-items:center; width:44px; height:44px; border-radius:14px; flex:none;
+  color:var(--acc); background:rgba(var(--acc-rgb),.08); border:1px solid rgba(var(--acc-rgb),.22);
+}
+.selo-ic .ic{ width:22px; height:22px }
+
+/* OS PASSOS — número no círculo, a linha entre eles */
+.passos{ list-style:none; display:grid; gap:12px; counter-reset:p }
+.passos li{
+  counter-increment:p; position:relative; display:flex; gap:14px; align-items:flex-start;
+  padding:14px 16px; border-radius:16px; background:var(--superficie); border:1px solid var(--linha);
+}
+.passos li::before{
+  content:counter(p); display:grid; place-items:center; width:30px; height:30px; flex:none; border-radius:999px;
+  font-size:13px; font-weight:700; color:var(--on-acc); background:var(--acc);
+  box-shadow:0 0 18px rgba(var(--acc-rgb),.35);
+}
+.passos li span{ padding-top:3px; color:var(--dim) }
+.passos li span b{ color:var(--ink); font-weight:600 }
+
+/* O LINK DA APN — o cartão que precisa ser achado em um segundo */
+.apn{
+  display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:clamp(18px,3cqw,40px); align-items:center;
+}
+@container (max-width:820px){ .apn{ grid-template-columns:minmax(0,1fr) } }
+.apn .exclusivo{ font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--acc) }
+.apn h3{ margin-top:10px; font-size:clamp(24px,3cqw,34px); letter-spacing:-.025em; line-height:1.1 }
+.endereco{
+  margin-top:18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+}
+.endereco code{
+  font-family:inherit; font-size:15px; font-weight:600; color:var(--ink); overflow-wrap:anywhere;
+  padding:10px 14px; border-radius:12px; background:rgba(var(--luz-rgb),.05); border:1px dashed rgba(var(--acc-rgb),.4);
+}
+
+/* A CONDUÇÃO — três momentos, cada um com quem faz */
+.conducao .cartao{ display:flex; flex-direction:column; gap:12px }
+.quem{ font-size:11px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--acc) }
+.etapa-num{ font-size:13px; font-weight:700; color:var(--dim-2) }
+
+/* ============================================================
+   O CRONOGRAMA — a tabela da arte (referencias/cronograma.webp),
+   reescrita em grade para caber no celular: no largo, cinco colunas;
+   no estreito, o horário desce para baixo do nome do bloco.
+   ============================================================ */
+.crono{ border-radius:22px; overflow:hidden; border:1px solid rgba(var(--acc-rgb),.28); background:var(--cartao) }
+.crono-linha{
+  display:grid; grid-template-columns:64px minmax(0,1fr) 136px 104px 104px;   /* 136: "DURAÇÃO MÁX." em uma linha só; em 110 quebrava */ align-items:center;
+  min-height:62px; border-top:1px solid var(--linha);
+}
+.crono-linha:first-child{ border-top:0 }
+.crono-linha > *{ padding:10px 14px }
+.crono-linha .c-ic{ display:grid; place-items:center; color:var(--acc); align-self:stretch; border-right:1px solid var(--linha) }
+.crono-linha .c-ic .ic{ width:24px; height:24px; stroke-width:1.6 }
+.crono-linha .c-nome{ font-weight:550; font-size:16px }
+.crono-linha .c-t{ text-align:center; font-variant-numeric:tabular-nums; color:var(--ink); font-size:16px }
+.crono-linha .c-t.d{ color:var(--dim) }
+.crono-cab{ min-height:52px; background:rgba(var(--acc-rgb),.05) }
+.crono-cab > *{ font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--dim) }
+.crono-cab .c-nome{ color:var(--acc); font-size:11px }
+.crono-linha.par{ background:rgba(var(--acc-rgb),.025) }
+.crono-linha.forte .c-nome, .crono-linha.forte .c-t{ color:var(--acc); font-weight:700 }
+.crono-linha.filho{ min-height:52px }
+.crono-linha.filho .c-ic{ border-right-color:transparent }
+.crono-linha.filho .c-nome{ display:flex; gap:12px; align-items:baseline; font-weight:450; color:var(--dim); font-size:15px }
+.crono-linha.filho .c-nome::before{ content:""; width:16px; height:2px; flex:none; background:var(--acc); transform:translateY(-4px) }
+.crono-linha.filho .c-t{ font-size:15px; color:var(--dim) }
+.crono-linha .c-dur-m{ display:none }
+@container (max-width:720px){
+  .crono-cab{ display:none }
+  .crono-linha{ grid-template-columns:52px minmax(0,1fr); }
+  .crono-linha .c-t{ display:none }
+  .crono-linha .c-dur-m{ display:block; margin-top:2px; font-size:13.5px; color:var(--dim); font-variant-numeric:tabular-nums; font-weight:450 }
+  .crono-linha.forte .c-dur-m{ color:var(--acc) }
+  .crono-linha .c-nome{ padding-top:12px; padding-bottom:12px }
+}
+
+/* O DRIVE — uma pasta por cartão */
+.pasta{
+  display:flex; gap:14px; align-items:flex-start; text-decoration:none;
+  transition:border-color .25s, transform .25s var(--mola);
+}
+.pasta:hover{ border-color:rgba(var(--acc-rgb),.5); transform:translateY(-2px) }
+.pasta h3{ font-size:16.5px }
+.pasta p{ margin-top:4px; font-size:14px; color:var(--dim) }
+.pasta .seta{ margin-left:auto; color:var(--dim-2); width:18px; height:18px; align-self:center }
+
+/* OS ATALHOS DAS ABAS — os cartões do Início que abrem cada aba */
+.atalho{
+  display:flex; flex-direction:column; gap:12px; text-decoration:none; min-height:100%;
+  transition:border-color .25s, transform .25s var(--mola);
+}
+.atalho:hover{ border-color:rgba(var(--acc-rgb),.5); transform:translateY(-3px) }
+.atalho p{ font-size:14.5px }
+.atalho .ir{ margin-top:auto; display:inline-flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--acc) }
+.atalho .ir .ic{ width:16px; height:16px; transition:transform .25s var(--mola) }
+.atalho:hover .ir .ic{ transform:translateX(3px) }
+
+/* ============================================================
+   INGRESSOS — a régua dos lotes. VARIÁVEL: o lote de hoje (--n, o
+   índice do lote vigente). A régua acende até ele.
+   ============================================================ */
+.regua{ list-style:none; display:grid; grid-template-columns:repeat(var(--qtd,4),minmax(0,1fr)); gap:10px; margin-top:20px }
+.regua li{
+  position:relative; padding:16px; border-radius:16px; border:1px solid var(--linha); background:var(--superficie);
+  display:flex; flex-direction:column; gap:4px;
+}
+.regua li .l-nome{ font-size:11.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--dim) }
+.regua li .l-valor{ font-size:clamp(24px,3cqw,30px); font-weight:700; letter-spacing:-.02em; line-height:1.1 }
+.regua li .l-data{ font-size:13.5px; color:var(--dim) }
+.regua li.passou{ opacity:.45 }
+.regua li.passou .l-valor{ text-decoration:line-through; text-decoration-thickness:2px; text-decoration-color:rgba(var(--ink-rgb),.4) }
+.regua li.agora{ border-color:var(--acc); background:rgba(var(--acc-rgb),.07); box-shadow:0 0 40px rgba(var(--acc-rgb),.14) }
+.regua li.agora .l-nome, .regua li.agora .l-valor{ color:var(--acc) }
+.regua li.agora::after{
+  content:"Vigente hoje"; position:absolute; top:-10px; right:12px; padding:2px 9px; border-radius:999px;
+  font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; background:var(--acc); color:var(--on-acc);
+}
+@container (max-width:720px){ .regua{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
+.estado{
+  display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;
+  background:rgba(var(--acc-rgb),.08); color:var(--acc); border:1px solid rgba(var(--acc-rgb),.3);
+}
+.estado.espera{ background:rgba(var(--aviso-rgb),.08); color:var(--aviso); border-color:rgba(var(--aviso-rgb),.35) }
+.estado.fim{ background:rgba(var(--luz-rgb),.05); color:var(--dim); border-color:var(--linha) }
+.estado::before{ content:""; width:7px; height:7px; border-radius:9px; background:currentColor; box-shadow:0 0 10px currentColor }
+.linha-acoes{ display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; align-items:center }
+
+.tabela-min{ list-style:none; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px }
+.tabela-min li{ padding:16px; border-radius:16px; background:var(--superficie); border:1px solid var(--linha); text-align:center }
+.tabela-min b{ display:block; font-size:30px; font-weight:700; line-height:1.1; color:var(--acc) }
+.tabela-min small{ display:block; margin-top:2px; font-size:13px; color:var(--dim) }
+.tabela-min span{ display:block; margin-top:8px; font-size:14px; font-weight:600 }
+@container (max-width:620px){ .tabela-min{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
+.lista{ list-style:none; display:grid; gap:10px; margin-top:12px }
+.lista li{ display:flex; gap:12px; align-items:flex-start; color:var(--dim) }
+.lista li::before{ content:""; width:7px; height:7px; flex:none; margin-top:9px; border-radius:9px; background:var(--acc); box-shadow:0 0 10px rgba(var(--acc-rgb),.6) }
+
+/* A LISTA DE CIDADES — busca + uma linha por cidade, com copiar e abrir */
+.busca{
+  display:flex; align-items:center; gap:10px; padding:0 16px; min-height:48px; border-radius:999px;
+  background:rgba(var(--luz-rgb),.05); border:1px solid var(--linha); max-width:420px; margin:0 auto 18px;
+}
+.busca:focus-within{ border-color:rgba(var(--acc-rgb),.6) }
+.busca input{ flex:1; min-width:0; background:none; border:0; outline:0; font-size:15px; min-height:46px }
+.busca input::placeholder{ color:var(--dim-2) }
+.busca .ic{ color:var(--dim-2); width:18px; height:18px }
+.cidades{ list-style:none; display:grid; gap:8px }
+.cidades li{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center;
+  padding:10px 10px 10px 18px; border-radius:16px; background:var(--superficie); border:1px solid var(--linha);
+}
+.cidades li.minha{ border-color:rgba(var(--acc-rgb),.5); background:rgba(var(--acc-rgb),.05) }
+.tag-minha{
+  display:inline-block; margin-left:8px; padding:1px 8px; border-radius:999px; vertical-align:2px;
+  font-style:normal; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--on-acc); background:var(--acc);
+}
+.cidades .c-nome{ font-weight:600 }
+.cidades .c-nome small{ display:block; font-weight:450; font-size:13px; color:var(--dim); font-variant-numeric:tabular-nums }
+.cidades .c-acoes{ display:flex; gap:8px }
+@container (max-width:520px){
+  .cidades li{ grid-template-columns:minmax(0,1fr); padding:14px }
+  .cidades .c-acoes .mini{ flex:1 }
+}
+.vazio{ text-align:center; color:var(--dim); padding:24px }
+
+/* CHECK-IN — o aviso e o link da cidade em destaque */
+.aviso{
+  display:flex; gap:16px; align-items:flex-start; padding:clamp(18px,2.4cqw,26px); border-radius:20px;
+  background:rgba(var(--aviso-rgb),.06); border:1px solid rgba(var(--aviso-rgb),.35);
+}
+.aviso .ic{ color:var(--aviso); width:26px; height:26px }
+.aviso h3{ color:var(--aviso); font-size:13px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+.aviso p{ margin-top:6px; color:var(--dim) }
+.link-grande{
+  margin-top:16px; padding:14px 16px; border-radius:14px; overflow-wrap:anywhere;
+  font-size:14px; color:var(--dim); background:rgba(var(--luz-rgb),.04); border:1px dashed rgba(var(--acc-rgb),.4);
+}
+
+/* MÍDIAS — os blocos do PDF de orientações, numerados */
+.bloco-num{
+  display:inline-grid; place-items:center; min-width:42px; height:30px; padding:0 10px; border-radius:9px;
+  font-size:14px; font-weight:800; letter-spacing:.04em; color:var(--on-acc); background:var(--acc);
+}
+.bloco-cab{ display:flex; align-items:center; gap:14px; margin-bottom:14px }
+.bloco-cab h3{ font-size:14px; font-weight:650; letter-spacing:.18em; text-transform:uppercase }
+.itens{ list-style:none; display:grid; gap:12px }
+.itens li{ display:flex; gap:12px; color:var(--dim) }
+.itens li .ic{ color:var(--acc); width:18px; height:18px; margin-top:3px }
+.itens li b{ color:var(--ink); font-weight:600 }
+.chips{ display:flex; flex-wrap:wrap; gap:8px }
+.chip{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; font-size:13.5px; font-weight:500;
+  border:1px solid rgba(var(--acc-rgb),.35); color:var(--ink); background:rgba(var(--acc-rgb),.04);
+}
+.chip i{ font-style:normal; font-size:11px; font-weight:700; color:var(--acc); font-variant-numeric:tabular-nums }
+.importante{
+  padding:clamp(20px,2.6cqw,30px); border-radius:20px; border:1px solid rgba(var(--acc-rgb),.45);
+  background:rgba(var(--acc-rgb),.05); box-shadow:0 0 50px rgba(var(--acc-rgb),.08);
+}
+.importante h3{ font-size:13px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--acc) }
+.importante p{ margin-top:8px; color:var(--dim) }
+
+/* CHECKLIST — cada item marca e fica marcado NESTE navegador.
+   VARIÁVEL: --p, de 0 a 1, a fração feita; a barra enche por scaleX. */
+.progresso{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:22px }
+.barra-p{ position:relative; width:min(420px,100%); height:8px; border-radius:9px; background:rgba(var(--luz-rgb),.08); overflow:hidden }
+.barra-p::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; background:var(--acc); box-shadow:0 0 16px var(--acc);
+  transform-origin:left; transform:scaleX(var(--p,0)); transition:transform .5s var(--mola);
+}
+.progresso span{ font-size:14px; color:var(--dim) }
+.progresso span b{ color:var(--ink) }
+.marcar{ list-style:none; display:grid; gap:4px }
+.marcar label{
+  display:flex; gap:12px; align-items:flex-start; padding:10px 10px; border-radius:12px; cursor:pointer;
+  color:var(--dim); transition:background-color .2s;
+}
+.marcar label:hover{ background:rgba(var(--luz-rgb),.03) }
+.marcar input{ position:absolute; opacity:0; pointer-events:none }
+.caixa{
+  display:grid; place-items:center; width:22px; height:22px; flex:none; margin-top:1px; border-radius:7px;
+  border:1.6px solid rgba(var(--acc-rgb),.6); transition:background-color .2s, border-color .2s;
+}
+.caixa .ic{ width:14px; height:14px; stroke-width:3; color:var(--on-acc); opacity:0; transform:scale(.5); transition:opacity .2s, transform .3s var(--mola) }
+.marcar input:checked + .caixa{ background:var(--acc); border-color:var(--acc) }
+.marcar input:checked + .caixa .ic{ opacity:1; transform:scale(1) }
+.marcar input:checked ~ .t{ color:var(--dim-2); text-decoration:line-through; text-decoration-color:rgba(var(--ink-rgb),.3) }
+.marcar input:focus-visible + .caixa{ outline:2px solid var(--acc); outline-offset:3px }
+.marcar .t b{ color:var(--ink); font-weight:600 }
+.marcar input:checked ~ .t b{ color:var(--dim-2) }
+.marcar .sub{ margin:4px 0 6px 44px }
+.marcar .sub .chips{ gap:6px }
+.marcar .sub label{ padding:0; display:inline-flex }
+.marcar .sub .chip{ cursor:pointer; transition:background-color .2s, color .2s }
+.marcar .sub input:checked + .chip{ background:var(--acc); color:var(--on-acc); border-color:var(--acc) }
+.marcar .sub input:focus-visible + .chip{ outline:2px solid var(--acc); outline-offset:2px }
+.ja-tem{ list-style:none; display:grid; gap:8px; margin-top:10px }
+.ja-tem li{ display:flex; gap:12px; align-items:center; color:var(--dim) }
+.ja-tem li .caixa{ background:var(--acc); border-color:var(--acc) }
+.ja-tem li .caixa .ic{ opacity:1; transform:none }
+.obs{ margin-top:14px; padding:12px 14px; border-left:3px solid var(--acc); border-radius:0 12px 12px 0; background:rgba(var(--acc-rgb),.05); font-size:14px; color:var(--dim) }
+.obs b{ color:var(--acc); letter-spacing:.08em }
+.ordem-passos{ margin:10px 0 0 20px; color:var(--dim); display:grid; gap:4px }
+.ordem-passos li{ padding-left:4px }
+.ordem-passos li::marker{ color:var(--acc); font-weight:700 }
+
+/* ============================================================
+   A TRILHA DO CHECKLIST — pedido do Matheus (14/10/2026): "organiza
+   como se fosse uma trilha da linha do tempo". As etapas saem da
+   ordem em que acontecem (dias antes → já garantido → na chegada →
+   14h00 → 14h30 → durante → fim), e não mais da numeração da arte.
+
+   VARIÁVEL ÚNICA POR ETAPA: --f, de 0 a 1, a fração marcada. Dela
+   saem o anel do nó (conic-gradient) e, quando chega a 1, o trecho
+   da linha que leva à etapa seguinte (--cheia, que o JS escreve 0/1).
+   A linha acesa só usa transform (scaleY).
+
+   No largo, o horário fica à esquerda da linha, como na tabela do
+   cronograma; no estreito, ele sobe para cima do título. A posição
+   da linha sai de --x-linha, o centro da coluna do nó: mudar a
+   coluna muda a linha junto.
+   ============================================================ */
+.trilha{
+  container-type:inline-size;
+  list-style:none; max-width:980px; margin:0 auto;
+  --col-quando:128px; --col-no:48px; --vao:22px;
+  --x-linha:calc(var(--col-quando) + var(--vao) + var(--col-no) / 2);
+}
+.etapa{
+  position:relative; display:grid;
+  grid-template-columns:var(--col-quando) var(--col-no) minmax(0,1fr);
+  grid-template-areas:"quando no corpo";
+  column-gap:var(--vao); padding-bottom:30px;
+}
+/* a linha: o trilho apagado (::before) e o trecho aceso por cima (::after).
+   Começa embaixo do nó e desce até o nó seguinte. */
+.etapa::before,.etapa::after{
+  content:""; position:absolute; left:calc(var(--x-linha) - 1px); top:52px; bottom:2px; width:2px; border-radius:2px;
+}
+.etapa::before{ background:var(--linha) }
+.etapa::after{
+  background:var(--acc); box-shadow:0 0 12px rgba(var(--acc-rgb),.55);
+  transform-origin:top; transform:scaleY(var(--cheia,0)); transition:transform .7s var(--mola);
+}
+.etapa.ultima::before,.etapa.ultima::after{ display:none }
+.etapa .quando{
+  grid-area:quando; text-align:right; padding-top:11px;
+  font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
+  font-variant-numeric:tabular-nums; transition:color .3s;
+}
+.etapa.acesa .quando{ color:var(--acc) }
+.etapa .no{ grid-area:no; position:relative; z-index:1; display:flex; justify-content:center }
+/* O NÓ — o anel enche com a fração feita; concluído, vira o disco de
+   acento com o visto. O miolo é o campo, para o anel ler como anel. */
+.bola{
+  position:relative; display:grid; place-items:center; width:44px; height:44px; border-radius:50%;
+  background:conic-gradient(var(--acc) calc(var(--f,0) * 1turn), rgba(var(--ink-rgb),.14) 0);
+  box-shadow:0 0 0 6px var(--campo);
+}
+.bola::before{ content:""; position:absolute; inset:3px; border-radius:50%; background:var(--campo) }
+.bola b{ position:relative; font-size:13px; font-weight:700; color:var(--dim); font-variant-numeric:tabular-nums }
+.bola .ic{ position:relative; width:18px; height:18px; color:var(--acc) }
+.bola .visto{ display:none; stroke-width:2.6; color:var(--on-acc) }
+.etapa.feita .bola{ background:var(--acc); box-shadow:0 0 0 6px var(--campo), 0 0 26px rgba(var(--acc-rgb),.5) }
+.etapa.feita .bola::before{ display:none }
+.etapa.feita .bola .marca-no{ display:none }
+.etapa.feita .bola .visto{ display:block }
+.etapa.info .bola{ background:rgba(var(--acc-rgb),.35) }
+.etapa .corpo{ grid-area:corpo; min-width:0 }
+.etapa .corpo-cab{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; min-height:44px; margin-bottom:12px }
+.etapa .corpo-cab h3{ font-size:clamp(19px,2.6cqw,23px); font-weight:650; letter-spacing:-.02em; line-height:1.2 }
+.conta{
+  margin-left:auto; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums;
+  color:var(--dim); background:rgba(var(--luz-rgb),.05); border:1px solid var(--linha); transition:color .3s, border-color .3s;
+}
+.etapa.feita .conta{ color:var(--acc); border-color:rgba(var(--acc-rgb),.45) }
+.etapa .cartao{ padding:clamp(16px,2.4cqw,24px) }
+.etapa.feita .cartao{ border-color:rgba(var(--acc-rgb),.28) }
+.partes{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 24px }
+.partes h4{ font-size:11.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); margin-bottom:8px }
+.partes .txt{ margin-top:0; font-size:14.5px }
+.etapa .marcar.solta{ margin-top:14px; padding-top:10px; border-top:1px solid var(--linha) }
+@container (max-width:900px){ .partes{ grid-template-columns:repeat(2,minmax(0,1fr)) } }
+@container (max-width:640px){
+  .trilha{ --col-no:44px; --vao:14px; --x-linha:calc(var(--col-no) / 2) }
+  .etapa{ grid-template-columns:var(--col-no) minmax(0,1fr); grid-template-areas:"no quando" "no corpo" }
+  .etapa .quando{ text-align:left; padding-top:0; font-size:12px; margin-bottom:2px; align-self:end }
+  .etapa .no{ grid-row:1 / span 2; align-items:flex-start }
+  .etapa::before,.etapa::after{ top:50px }
+  .partes{ grid-template-columns:minmax(0,1fr) }
+  .marcar .sub{ margin-left:0 }
+}
+
+/* CONTATOS */
+.contato{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:14px 0; border-top:1px solid var(--linha) }
+.contato:first-of-type{ border-top:0 }
+.contato .tipo{ font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--acc) }
+.contato .nome{ font-weight:600; margin-top:2px }
+.contato .obs-c{ font-size:13.5px; color:var(--dim) }
+.contato .c-acoes{ display:flex; gap:8px; flex-wrap:wrap }
+
+/* RODAPÉ */
+.rodape{ padding:48px 24px 40px; border-top:1px solid var(--linha); text-align:center }
+.rodape .dentro{ width:min(var(--larg),100%); margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:18px }
+.rodape img{ width:96px; height:auto; opacity:.9 }
+.rodape nav{ display:flex; flex-wrap:wrap; justify-content:center; gap:4px 8px }
+.rodape nav a{ display:inline-flex; align-items:center; min-height:44px; padding:0 10px; font-size:13.5px; color:var(--dim); text-decoration:none }
+.rodape nav a:hover{ color:var(--ink) }
+.rodape small{ font-size:12.5px; color:var(--dim-2) }
+
+/* O AVISO DE COPIADO — um só, embaixo, some sozinho */
+.toast{
+  position:fixed; left:50%; bottom:24px; z-index:60; padding:12px 18px; border-radius:999px;
+  font-size:14px; font-weight:600; color:var(--on-acc); background:var(--acc); box-shadow:0 0 40px rgba(var(--acc-rgb),.4);
+  transform:translate(-50%,20px); opacity:0; pointer-events:none; transition:opacity .25s, transform .35s var(--mola);
+}
+.toast.ve{ opacity:1; transform:translate(-50%,0) }
+
+/* A ENTRADA DE CADA ABA — por tempo, cascata de 80ms pelo --i
+   (Lei 11). Estado final visível (fill both): sem animação o conteúdo
+   está lá; a aba aberta reinicia a cascata porque sai de display:none. */
+.aba [data-reveal]{ animation:entra .7s var(--mola) both; animation-delay:calc(var(--i,0) * 80ms + 60ms) }
+@keyframes entra{ from{ opacity:0; transform:translateY(22px) } }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important }
+  .particula{ display:none }
+  .fundo-orbe video{ display:none }
+}
+</style>
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+<!-- OS ÍCONES — traço de 1,8 sobre 24, a mesma família em todo o portal -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-usuarios" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.1a4 4 0 0 1 0 7.8M21 21v-2a4 4 0 0 0-3-3.9"/></symbol>
+  <symbol id="i-megafone" viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1zM16.5 8.5a5 5 0 0 1 0 7M19.5 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-tela" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M12 16v5M8 21h8M6.5 12.5l3-3 2.5 2.5 4-4.5"/></symbol>
+  <symbol id="i-premio" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.5 13 7 22l5-3 5 3-1.5-9"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-cafe" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM7 2v3M11 2v3"/></symbol>
+  <symbol id="i-foguete" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2zM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
+  <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></symbol>
+  <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-externo" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-ingresso" viewBox="0 0 24 24"><path d="M3 9a3 3 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a3 3 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1zM14 5v2M14 11v2M14 17v2"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M17 20h4M20 17v3M14 20h.01"/></symbol>
+  <symbol id="i-pasta" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-musica" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-4v12l-6-4z"/></symbol>
+  <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-arquivo" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-conversa" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24"><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17M11 6h10M11 12h10M11 18h10"/></symbol>
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
+  <symbol id="i-escritorio" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></symbol>
+  <symbol id="i-som" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-celular" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+</svg>
+
+<div class="fundo-orbe" aria-hidden="true">
+  <video src="assets/video/orbe.mp4" poster="assets/video/orbe-poster.webp" autoplay muted loop playsinline preload="auto"></video>
+</div>
+
+<header class="topo">
+  <a class="marca" href="#inicio" aria-label="iGreen Summit · Portal do Coordenador, início">
+    <img src="assets/icone.svg" alt="" width="44" height="44">
+    <span>Summit</span>
+  </a>
+  <nav class="pilula vidro" id="nav" aria-label="Abas do portal">
+    <span class="tubo" aria-hidden="true"></span>
+  </nav>
+  <div class="dir">
+    <a class="chamada vidro" id="chamada-drive" href="#" data-ext><span>Materiais no Drive</span><i aria-hidden="true"><svg class="ic"><use href="#i-pasta"/></svg></i></a>
+    <button class="abre-menu vidro" id="abre-menu" aria-expanded="false" aria-controls="menu" aria-label="Abrir as abas"><svg class="ic"><use href="#i-menu"/></svg></button>
+  </div>
+  <nav class="menu-topo vidro" id="menu" aria-label="Abas do portal no celular" hidden></nav>
+</header>
+
+<main id="conteudo">
+
+<!-- ======================= INÍCIO ======================= -->
+<section class="aba" id="inicio" data-aba="Início" aria-label="Início">
+  <div class="heroi">
+    <div class="brilho" id="particulas" aria-hidden="true"></div>
+    <div class="heroi-dentro">
+      <div class="marca-summit" data-reveal style="--i:0">
+        <img src="assets/igreen.svg" alt="iGreen" width="220" height="61">
+        <b aria-hidden="true">Summit</b>
+      </div>
+      <span class="rotulo-heroi" data-reveal style="--i:1" data-edicao>Edição</span>
+      <h1 data-reveal style="--i:2">Portal do <em>Coordenador</em></h1>
+      <p class="apoio" data-reveal style="--i:3">Tudo o que você precisa para conduzir o iGreen Summit da sua cidade: a apresentação, o cronograma, os ingressos, o check-in e as mídias, num lugar só.</p>
+      <div class="meu-bloco" data-reveal style="--i:4">
+      <span class="escolha" aria-hidden="true">Escolha sua cidade <svg class="ic"><use href="#i-baixo"/></svg></span>
+      <div class="meu-summit vidro">
+        <label class="seletor">
+          <span class="sr">Escolha a sua cidade</span>
+          <select data-seletor-cidade></select>
+          <svg class="ic"><use href="#i-baixo"/></svg>
+        </label>
+        <span id="meu-summit-txt">Veja a data do seu Summit, o link de check-in e o lote de hoje.</span>
+      </div>
+      </div>
+      <div class="acoes" data-reveal style="--i:5">
+        <a class="botao-principal" data-apn data-ext href="#">Abrir a APN Summit <svg class="ic"><use href="#i-externo"/></svg></a>
+        <a class="botao-vazio" href="#checkin" id="botao-checkin"><span>Link de check-in</span> <svg class="ic"><use href="#i-qr"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMO APRESENTAR -->
+  <div class="secao" id="apresentar">
+    <div class="dentro">
+      <header class="cab" data-reveal style="--i:6">
+        <span class="rotulo">A apresentação</span>
+        <h2 class="titulo">Como apresentar a <em>APN Digital</em></h2>
+      </header>
+      <div class="cartao luz apn" data-reveal style="--i:7">
+        <div>
+          <span class="exclusivo">Utilize exclusivamente</span>
+          <h3>A nova APN DIGITAL – SUMMIT</h3>
+          <p class="txt">Ela já tem os vídeos dentro. Não precisa baixar nada nem abrir outro arquivo.</p>
+          <div class="endereco">
+            <code data-apn-txt></code>
+            <button class="mini" type="button" data-copiar-apn><svg class="ic"><use href="#i-copiar"/></svg>Copiar</button>
+          </div>
+          <div class="linha-acoes"><a class="botao-principal" data-apn data-ext href="#">Abrir a APN Summit <svg class="ic"><use href="#i-externo"/></svg></a></div>
+        </div>
+        <ol class="passos" id="passos-apn"></ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONDUÇÃO -->
+  <div class="secao" id="conducao">
+    <div class="dentro">
+      <header class="cab" data-reveal style="--i:8">
+        <span class="rotulo">No palco</span>
+        <h2 class="titulo">Condução do <em>evento</em></h2>
+        <p>Quem fala em cada momento, na ordem.</p>
+      </header>
+      <div class="grade g3 conducao" id="conducao-lista"></div>
+    </div>
+  </div>
+
+  <!-- CRONOGRAMA -->
+  <div class="secao" id="cronograma">
+    <div class="dentro">
+      <header class="cab" data-reveal style="--i:9">
+        <span class="rotulo">Hora a hora</span>
+        <h2 class="titulo">Cronograma do <em>evento</em></h2>
+        <p>Duração máxima de cada bloco. O check-in abre às <b data-hora-checkin></b> e a abertura começa pontualmente às <b data-hora-inicio></b>.</p>
+      </header>
+      <div class="crono" id="crono" role="table" aria-label="Cronograma do evento" data-reveal style="--i:10"></div>
+    </div>
+  </div>
+
+  <!-- MATERIAIS -->
+  <div class="secao" id="materiais">
+    <div class="dentro">
+      <header class="cab" data-reveal style="--i:12">
+        <span class="rotulo">Drive · atualizado todo mês</span>
+        <h2 class="titulo">Materiais de <em>apoio</em></h2>
+        <p>Peças de divulgação, a apresentação START e os materiais de apoio do evento. Baixe sempre do Drive: ele é atualizado mensalmente.</p>
+      </header>
+      <div class="grade g3" id="drive-lista"></div>
+      <div class="linha-acoes" style="justify-content:center">
+        <a class="botao-principal" data-drive data-ext href="#">Abrir a pasta completa <svg class="ic"><use href="#i-externo"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATALHOS -->
+  <div class="secao" id="atalhos">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Por assunto</span>
+        <h2 class="titulo">O que mais você <em>precisa</em></h2>
+      </header>
+      <div class="grade g3" id="atalhos-lista"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= INGRESSOS ======================= -->
+<section class="aba" id="ingressos" data-aba="Ingressos" aria-label="Ingressos">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">Venda de ingressos</span>
+      <h1 data-reveal style="--i:1">Ingressos e <em>lotes</em></h1>
+      <p data-reveal style="--i:2">O valor muda com a data. Escolha a sua cidade e veja o lote de hoje e o link de compra do próximo Summit.</p>
+      <div class="meu-bloco centro" data-reveal style="--i:3">
+        <span class="escolha" aria-hidden="true">Escolha sua cidade <svg class="ic"><use href="#i-baixo"/></svg></span>
+        <label class="seletor">
+          <span class="sr">Escolha a sua cidade</span>
+          <select data-seletor-cidade></select>
+          <svg class="ic"><use href="#i-baixo"/></svg>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="secao" style="padding-top:0">
+    <div class="dentro">
+      <div class="cartao luz" id="meu-lote" data-reveal style="--i:4"></div>
+    </div>
+  </div>
+
+  <div class="secao">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Na hora da APN</span>
+        <h2 class="titulo">Como abrir as <em>vendas</em></h2>
+      </header>
+      <div class="grade g2">
+        <div class="cartao">
+          <div class="selo-ic"><svg class="ic"><use href="#i-pino"/></svg></div>
+          <h3 style="margin-top:14px">Ao final da APN, escolha o estado no mapa</h3>
+          <p>No final do link da APN Summit Digital há um mapa do Brasil. Selecione o estado para abrir o evento e iniciar as vendas, ali mesmo, com o público na sala.</p>
+        </div>
+        <div class="cartao">
+          <div class="selo-ic"><svg class="ic"><use href="#i-calendario"/></svg></div>
+          <h3 style="margin-top:14px">Regra dos lotes</h3>
+          <ul class="lista" id="regra-lotes"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="secao">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Primeira compra</span>
+        <h2 class="titulo">Compra mínima <em>inicial</em></h2>
+        <p>Depois da primeira compra, dá para comprar ingressos avulsos para qualquer cidade.</p>
+      </header>
+      <ul class="tabela-min" id="compra-minima"></ul>
+      <div class="grade g2" style="margin-top:16px">
+        <div class="cartao">
+          <div class="selo-ic"><svg class="ic"><use href="#i-cartao"/></svg></div>
+          <h3 style="margin-top:14px">Pagamento</h3>
+          <ul class="lista" id="pagamento"></ul>
+        </div>
+        <div class="cartao">
+          <div class="selo-ic"><svg class="ic"><use href="#i-escritorio"/></svg></div>
+          <h3 style="margin-top:14px">Gerencie no Escritório Virtual</h3>
+          <p>Os ingressos comprados ficam no Escritório Virtual, onde dá para acompanhar e gerenciar cada um.</p>
+          <div class="linha-acoes"><a class="botao-vazio" data-escritorio data-ext href="#">Abrir o Escritório Virtual <svg class="ic"><use href="#i-externo"/></svg></a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="secao" id="links-compra">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Todas as cidades</span>
+        <h2 class="titulo">Links de <em>compra</em></h2>
+        <p>Próximos eventos. Para outros meses, procure pelo mês no <a data-eventos data-ext href="#">site de Eventos</a> e selecione a cidade.</p>
+      </header>
+      <label class="busca"><svg class="ic"><use href="#i-busca"/></svg><span class="sr">Buscar cidade</span><input type="search" placeholder="Buscar cidade ou estado" data-busca="compra" autocomplete="off"></label>
+      <ul class="cidades" id="lista-compra"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHECK-IN ======================= -->
+<section class="aba" id="checkin" data-aba="Check-in" aria-label="Check-in">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">No dia do evento</span>
+      <h1 data-reveal style="--i:1">Check-in dos <em>convidados</em></h1>
+      <p data-reveal style="--i:2">Cada cidade tem o seu link. Quem faz o check-in abre esse link no celular e lê o QR Code de cada convidado.</p>
+      <div class="meu-bloco centro" data-reveal style="--i:3">
+        <span class="escolha" aria-hidden="true">Escolha sua cidade <svg class="ic"><use href="#i-baixo"/></svg></span>
+        <label class="seletor">
+          <span class="sr">Escolha a sua cidade</span>
+          <select data-seletor-cidade></select>
+          <svg class="ic"><use href="#i-baixo"/></svg>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="secao" style="padding-top:0">
+    <div class="dentro grade" style="gap:16px">
+      <div class="aviso" data-reveal style="--i:4">
+        <svg class="ic"><use href="#i-alerta"/></svg>
+        <div>
+          <h3>Aviso importante</h3>
+          <p>O check-in começa às <b data-hora-checkin></b>. Para a entrada ser rápida e a programação começar pontualmente às <b data-hora-inicio></b>, separe <strong>de 2 a 3 pessoas</strong> para ler os QR Codes e validar a entrada dos participantes no sistema.</p>
+        </div>
+      </div>
+      <div class="cartao luz" id="meu-checkin" data-reveal style="--i:5"></div>
+    </div>
+  </div>
+
+  <div class="secao">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Passo a passo</span>
+        <h2 class="titulo">É <em>simples</em></h2>
+      </header>
+      <ol class="passos grade g2" id="passos-checkin" style="display:grid"></ol>
+    </div>
+  </div>
+
+  <div class="secao">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Todas as cidades</span>
+        <h2 class="titulo">Links de <em>check-in</em></h2>
+        <p>O link é individual para cada cidade. Confira o nome e a data antes de mandar para a equipe.</p>
+      </header>
+      <label class="busca"><svg class="ic"><use href="#i-busca"/></svg><span class="sr">Buscar cidade</span><input type="search" placeholder="Buscar cidade ou estado" data-busca="checkin" autocomplete="off"></label>
+      <ul class="cidades" id="lista-checkin"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= MÍDIAS ======================= -->
+<section class="aba" id="midias" data-aba="Mídias" aria-label="Mídias">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">Fotos e vídeos</span>
+      <h1 data-reveal style="--i:1">Orientações de <em>mídias</em></h1>
+      <p data-reveal style="--i:2">Não precisa contratar ninguém: o próprio celular resolve. Se alguém puder te ajudar com os registros, melhor ainda. São fotos e vídeos curtos que mostram como foi o evento e dão visibilidade para a sua cidade.</p>
+      <div class="acoes" data-reveal style="--i:3">
+        <a class="botao-vazio" href="assets/docs/orientacoes-de-midias-summit.pdf" download>Baixar o PDF <svg class="ic"><use href="#i-arquivo"/></svg></a>
+      </div>
+    </div>
+  </header>
+  <div class="secao" style="padding-top:0">
+    <div class="dentro grade" style="gap:16px">
+      <div class="grade g3" id="midias-blocos"></div>
+      <div class="cartao" data-reveal style="--i:7">
+        <div class="bloco-cab"><span class="bloco-num">06</span><h3>Resumo das capturas</h3></div>
+        <div class="chips" id="midias-resumo"></div>
+      </div>
+      <div class="importante" data-reveal style="--i:8">
+        <h3>Importante</h3>
+        <p>Os registros do seu evento alimentam as redes e a comunicação oficial da iGreen. Quanto melhor a captação, maior a visibilidade da sua cidade. E não esqueça da <strong>foto oficial no final</strong>: queremos ver esse momento e sentir, mesmo à distância, a energia do evento de vocês.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHECKLIST ======================= -->
+<section class="aba" id="checklist" data-aba="Checklist" aria-label="Checklist">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">Líder da cidade · evento presencial</span>
+      <h1 data-reveal style="--i:1">Checklist <em>operacional</em></h1>
+      <p data-reveal style="--i:2">Marque o que já fez. Fica guardado neste aparelho, então dá para ir marcando ao longo dos dias.</p>
+    </div>
+  </header>
+  <div class="secao" style="padding-top:0">
+    <div class="dentro">
+      <div class="progresso" data-reveal style="--i:3">
+        <div class="barra-p" id="barra-p" role="progressbar" aria-label="Itens feitos" aria-valuemin="0" aria-valuemax="100"></div>
+        <span id="progresso-txt"></span>
+        <button class="mini" type="button" id="limpar-checklist">Desmarcar tudo</button>
+      </div>
+      <ol class="trilha" id="checklist-blocos" aria-label="Etapas do checklist, em ordem de tempo"></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CONTATOS ======================= -->
+<section class="aba" id="contatos" data-aba="Contatos" aria-label="Contatos">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">Fornecedores</span>
+      <h1 data-reveal style="--i:1">Contatos da <em>cidade</em></h1>
+      <p data-reveal style="--i:2">Audiovisual, local do evento e outros fornecedores, por cidade.</p>
+      <div class="meu-bloco centro" data-reveal style="--i:3">
+        <span class="escolha" aria-hidden="true">Escolha sua cidade <svg class="ic"><use href="#i-baixo"/></svg></span>
+        <label class="seletor">
+          <span class="sr">Escolha a sua cidade</span>
+          <select data-seletor-cidade></select>
+          <svg class="ic"><use href="#i-baixo"/></svg>
+        </label>
+      </div>
+    </div>
+  </header>
+  <div class="secao" style="padding-top:0">
+    <div class="dentro">
+      <div class="cartao luz" id="meus-contatos" data-reveal style="--i:4"></div>
+    </div>
+  </div>
+  <div class="secao">
+    <div class="dentro">
+      <header class="cab">
+        <span class="rotulo">Todas as cidades</span>
+        <h2 class="titulo">Lista <em>completa</em></h2>
+      </header>
+      <div class="grade g2" id="contatos-todos" style="align-items:start"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="rodape">
+  <div class="dentro">
+    <img src="assets/igreen.svg" alt="iGreen" width="96" height="27">
+    <nav id="rodape-links" aria-label="Abas do portal"></nav>
+    <small>iGreen Summit · Portal do Coordenador · atualizado em <span data-atualizado></span></small>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   OS DADOS — troque só isto.
+   Cada mês: as cidades (datas e links), a edição e a data de
+   atualização. O resto (APN, condução, cronograma, lotes, mídias,
+   checklist) só muda se a regra do evento mudar.
+   ============================================================ */
+const DADOS = {
+  edicao: 'iGreen Summit · Outubro 2026',
+  atualizado: '14/10/2026',
+
+  horario: { checkin: '14h00', inicio: '14h30' },
+
+  apn: {
+    url: 'https://apnsummit.igreenenergy.com.br/',
+    passos: [
+      'Abra o link <b>no navegador</b>.',
+      'Clique em <b>“Apresentação”</b>, no canto superior direito.',
+      'Os <b>vídeos já estão integrados</b> à APN.',
+      'Use o <b>passador</b> normalmente.'
+    ]
+  },
+
+  conducao: [
+    { quem: 'Coordenador da região', icone: 'megafone', texto: 'Faz a <b>abertura</b>, dá as boas-vindas e <b>anuncia o VIP</b>.' },
+    { quem: 'VIP', icone: 'tela', texto: 'Apresenta a <b>APN DIGITAL</b> e, no final dela, abre as vendas do próximo Summit pelo mapa.' },
+    { quem: 'VIP, depois do intervalo', icone: 'foguete', texto: 'Conduz o treinamento <b>START</b> pelo PowerPoint que está no Drive.', link: 'start' }
+  ],
+
+  /* O CRONOGRAMA — da arte referencias/cronograma.webp, valor por valor.
+     ⚠ Dois pontos da arte foram mantidos como vieram, aguardando o Fábio:
+     · "Tema personalizado + Start padrão" vai de 16:05 a 18:15 (2:10) e o
+       "Encerramento" do START de 18:05 a 18:15 — os dois se sobrepõem em 10 min;
+     · o checklist operacional diz "14h00 – 18h00, encerramento máximo 18h00",
+       e este cronograma termina às 18:30. */
+  cronograma: [
+    { icone: 'usuarios',   bloco: 'Check-in / Recepção / Networking',      dur: '0:30', ini: '14:00', fim: '14:30' },
+    { icone: 'megafone',   bloco: 'Abertura Oficial',                      dur: '0:10', ini: '14:30', fim: '14:40' },
+    { icone: 'tela',       bloco: 'Apresentação Oficial do Plano',         dur: '0:40', ini: '14:40', fim: '15:20' },
+    { icone: 'premio',     bloco: 'Reconhecimentos Principais',            dur: '0:15', ini: '15:20', fim: '15:35' },
+    { icone: 'camera',     bloco: 'Divulga o Próximo Evento / Foto Oficial', dur: '0:10', ini: '15:35', fim: '15:45' },
+    { icone: 'cafe',       bloco: 'Intervalo e Fechamentos',               dur: '0:15', ini: '15:45', fim: '16:00' },
+    { icone: 'foguete',    bloco: 'START',                                 dur: '2:15', ini: '16:00', fim: '18:15', forte: true,
+      filhos: [
+        { bloco: 'Abertura',                                                 dur: '0:05', ini: '16:00', fim: '16:05' },
+        { bloco: 'Tema personalizado do VIP + Start padrão (10 passos do Sistema)', dur: '2:10', ini: '16:05', fim: '18:15' },
+        { bloco: 'Encerramento',                                             dur: '0:10', ini: '18:05', fim: '18:15' }
+      ] },
+    { icone: 'calendario', bloco: 'Divulga o Próximo Evento',              dur: '0:10', ini: '18:15', fim: '18:25' },
+    { icone: 'check-c',    bloco: 'Encerramento Oficial',                  dur: '0:05', ini: '18:25', fim: '18:30' }
+  ],
+
+  /* O DRIVE — as pastas, não os arquivos: o Fábio troca os arquivos todo
+     mês, e o link da pasta continua valendo. Conferido no Drive em 14/10. */
+  drive: {
+    pasta: 'https://drive.google.com/drive/folders/1OCMTUJS8EeOFKYJGAa8uJz3aXHu4VEng',
+    pastas: [
+      { id: 'start',   icone: 'foguete',  titulo: 'Apresentação START', texto: 'O PowerPoint do treinamento START (também em PDF).', url: 'https://drive.google.com/drive/folders/1buwqMzX0wup9jCCK9x1z2UaQ0-clNhmU' },
+      { id: 'flyers',  icone: 'imagem',   titulo: 'Flyers do evento',   texto: 'As peças de divulgação de cada cidade.', url: 'https://drive.google.com/drive/folders/1H1UAemYkGUeINT4-ZKdgCSwegqe_jm2R' },
+      { id: 'videos',  icone: 'video',    titulo: 'Vídeos',             texto: 'Os vídeos de apoio do evento.', url: 'https://drive.google.com/drive/folders/1utRv_XkekGWpYAbraWVSSUTTSoPwEn68' },
+      { id: 'apn',     icone: 'tela',     titulo: 'APN e Newsletter',   texto: 'A APN em PowerPoint e a newsletter do mês.', url: 'https://drive.google.com/drive/folders/11I3J5GZJgS7fakZDo1s2d0JMdkODtbO7' },
+      { id: 'playlist',icone: 'musica',   titulo: 'Playlist de músicas', texto: 'Música ambiente para antes da abertura.', url: 'https://drive.google.com/drive/folders/1BD4A2lT0VKHl24N4oACdKSlsNfeQz4mT' },
+      { id: 'pasta',   icone: 'pasta',    titulo: 'Checklist e cronograma', texto: 'Na raiz da pasta, em PDF e em imagem.', url: 'https://drive.google.com/drive/folders/1OCMTUJS8EeOFKYJGAa8uJz3aXHu4VEng' }
+    ]
+  },
+
+  escritorio: 'https://escritorio.igreenenergy.com.br/',
+  eventos: 'https://eventos.igreenenergy.com.br/',
+
+  /* OS LOTES — a regra da Jennifer (14/10/2026). O LANÇAMENTO de um Summit
+     é o Summit do mês anterior na mesma cidade: é no fim da APN dele que o
+     VIP abre as vendas pelo mapa. Por isso cada cidade abaixo tem duas
+     datas, `evento` (o deste mês, que lança) e `proximo` (o que está à
+     venda). A régua da aba Ingressos é calculada daí, cidade por cidade. */
+  lotes: [
+    { nome: 'Lote promocional', valor: 30,  regra: 'somente no dia do lançamento' },
+    { nome: '2º lote',          valor: 50,  regra: 'do dia seguinte ao lançamento até o último dia do mês' },
+    { nome: '3º lote',          valor: 70,  regra: 'do início do mês seguinte até um dia antes do evento' },
+    { nome: 'No dia do evento', valor: 100, regra: 'no dia do evento' }
+  ],
+
+  compraMinima: [
+    { qtd: 2, cargo: 'Gestor' },
+    { qtd: 3, cargo: 'Executivo' },
+    { qtd: 4, cargo: 'Diretor' },
+    { qtd: 5, cargo: 'Acionista e acima' }
+  ],
+  pagamento: [
+    '<b>Licenciados</b> podem pagar com bônus, Pix ou cartão.',
+    '<b>Quem tem só o pré-cadastro</b> paga com Pix ou cartão.'
+  ],
+
+  checkin: [
+    'Escolha a sua cidade aqui no portal e <b>copie o link</b> de check-in.',
+    'Mande o link para as <b>2 ou 3 pessoas</b> que vão fazer o check-in.',
+    'No dia, abra o link no celular, <b>com internet</b>, e permita o uso da câmera.',
+    'Leia o <b>QR Code</b> de cada convidado para validar a entrada no sistema.'
+  ],
+
+  /* AS CIDADES — check-in do evento deste mês e compra do próximo, da
+     lista que a Jennifer mandou em 14/10/2026. Para adicionar uma cidade,
+     acrescente uma linha; a ordem aqui é a ordem na tela. */
+  cidades: [
+    { nome: 'Belo Horizonte', uf: 'MG', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-08-11' },
+    { nome: 'Brasília',       uf: 'DF', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-08-11' },
+    { nome: 'Curitiba',       uf: 'PR', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-08-11' },
+    { nome: 'Fortaleza',      uf: 'CE', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-fortaleza-ce-18-10/checkin',      proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-fortaleza-ce-08-11' },
+    { nome: 'Goiânia',        uf: 'GO', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-goiania-go-18-10/checkin',        proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-goiania-go-08-11' },
+    { nome: 'Maceió',         uf: 'AL', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-maceio-al-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-maceio-al-08-11' },
+    { nome: 'Manaus',         uf: 'AM', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-manaus-am-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-manaus-am-08-11' },
+    { nome: 'Palmas',         uf: 'TO', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-palmas-to-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-palmas-to-08-11' },
+    { nome: 'Porto Alegre',   uf: 'RS', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-porto-alegre-rs-18-10/checkin',   proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-porto-alegre-rs-08-11' },
+    { nome: 'São Luís',       uf: 'MA', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-luis-ma-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-luis-ma-08-11' },
+    { nome: 'São Paulo',      uf: 'SP', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-paulo-sp-18-10/checkin',      proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-paulo-sp-08-11' },
+    { nome: 'Teresina',       uf: 'PI', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-teresina-pi-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-teresina-pi-08-11' },
+    { nome: 'Vitória',        uf: 'ES', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-vitoria-es-18-10/checkin',        proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-vitoria-es-08-11' },
+    { nome: 'Campo Grande',   uf: 'MS', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campo-grande-ms-24-10/checkin',   proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campo-grande-ms-08-11' },
+    { nome: 'Florianópolis',  uf: 'SC', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-florianopolis-sc-24-10/checkin',  proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-florianopolis-sc-08-11' },
+    { nome: 'João Pessoa',    uf: 'PB', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-joao-pessoa-pb-24-10/checkin',    proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-joao-pessoa-pb-07-11' },
+    { nome: 'Natal',          uf: 'RN', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-natal-rn-24-10/checkin',          proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-natal-rn-08-11' },
+    { nome: 'Recife',         uf: 'PE', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-recife-pe-24-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-recife-pe-08-11' },
+    { nome: 'Ribeirão Preto', uf: 'SP', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-ribeirao-preto-sp-24-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-ribeirao-preto-sp-08-11' },
+    { nome: 'Rio de Janeiro', uf: 'RJ', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-rio-de-janeiro-rj-24-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-rio-de-janeiro-rj-08-11' },
+    { nome: 'Salvador',       uf: 'BA', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-salvador-ba-24-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-salvador-ba-08-11' },
+    { nome: 'Uberlândia',     uf: 'MG', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-uberlandia-mg-24-10/checkin',     proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-uberlandia-mg-08-11' },
+    { nome: 'Cuiabá',         uf: 'MT', evento: '2026-10-25', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-25-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-08-11' }
+  ],
+
+  /* OS FORNECEDORES — por cidade, pelo nome exato da lista acima.
+     ⚠ AINDA VAZIO: a lista com os telefones não veio junto (14/10/2026).
+     Enquanto a cidade não tiver linha aqui, a aba mostra "em atualização".
+     Formato de cada contato:
+       { tipo: 'Audiovisual', nome: 'Fulano Som e Luz', telefone: '(31) 99999-0000', obs: 'técnico do dia' }
+     `telefone` vira botão de ligar e de WhatsApp. */
+  fornecedores: {
+    // 'Belo Horizonte': [
+    //   { tipo: 'Audiovisual',      nome: '', telefone: '' },
+    //   { tipo: 'Local do evento',  nome: '', telefone: '' }
+    // ],
+  },
+
+  midias: [
+    { titulo: 'Antes da abertura', itens: [
+      ['camera', '<b>Espaço preparado</b> — foto e vídeo do ambiente pronto, antes da chegada dos convidados.'],
+      ['usuarios', '<b>Fila do check-in</b> — registre a movimentação e a expectativa na entrada.'],
+      ['qr', '<b>Check-in</b> — capture a leitura dos QR Codes e a recepção dos convidados.']
+    ] },
+    { titulo: 'Durante o evento', itens: [
+      ['usuarios', '<b>Pessoas entrando</b> no espaço do evento.'],
+      ['megafone', '<b>Líderes no palco</b> — fotos e vídeos das apresentações.'],
+      ['video', '<b>Convidados sentados</b> — filmagem geral do público.'],
+      ['relogio', '<b>Uma fala completa dos líderes</b> — grave do início ao fim, sem cortes.'],
+      ['camera', '<b>Líder falando direto para a câmera</b> — mensagem ou depoimento curto sobre o evento.']
+    ] },
+    { titulo: 'Encerramento', itens: [
+      ['check-c', '<b>Encerramento</b> — registre o momento final do evento.'],
+      ['camera', '<b>Foto oficial</b> com todos os participantes, ao final.'],
+      ['conversa', '<b>Interações pós-evento</b> — networking, celebração e depoimentos dos convidados.']
+    ] },
+    { titulo: 'Dicas de captação', largo: true, itens: [
+      ['celular', '<b>Use o próprio celular</b> — não precisa de equipamento profissional.'],
+      ['celular', '<b>Grave na vertical</b> — todos os vídeos no formato de Stories e Reels.'],
+      ['sol', '<b>Iluminação</b> — luz de frente para as pessoas; evite contraluz.'],
+      ['som', '<b>Áudio</b> — chegue perto de quem está falando e evite ruídos ao redor.'],
+      ['usuarios', '<b>Estabilidade</b> — apoie o celular ou segure com as duas mãos; evite movimentos bruscos.'],
+      ['check', '<b>Lente limpa</b> — limpe a câmera antes de cada gravação.'],
+      ['relogio', '<b>Duração</b> — prefira vários vídeos curtos (15 a 60 segundos) a um único vídeo longo.']
+    ] },
+    { titulo: 'Envio dos arquivos', itens: [
+      ['enviar', 'Envie em <b>HD</b> ou como <b>arquivo</b> no WhatsApp, para não perder qualidade.']
+    ] }
+  ],
+  midiasResumo: ['Espaço pronto', 'Fila do check-in', 'Check-in', 'Pessoas entrando', 'Líderes no palco', 'Público geral', 'Fala completa', 'Fala para a câmera', 'Encerramento', 'Foto oficial', 'Pós-evento'],
+
+  /* O CHECKLIST — da arte referencias/checklist-operacional.webp, posto
+     em ORDEM DE TEMPO (a trilha). `quando` é o rótulo ao lado da linha;
+     {checkin} e {inicio} viram os horários de `horario`.
+     `id` de cada item é o que fica guardado no navegador: trocar o texto
+     não desmarca; trocar o id, sim. Etapa sem `itens` é de consulta: o
+     nó mostra um ícone em vez do número.
+     Duas mudanças de lugar em relação à arte, por causa da ordem de tempo:
+     a OBS dos 2 canais de som virou item marcável da etapa "Já garantido",
+     e "enviar foto do espaço pronto antes da abertura" saiu de "Durante"
+     para "Na chegada", que é quando ela acontece. */
+  checklist: [
+    { quando: 'Dias antes', titulo: 'Antes do evento', itens: [
+      { id: 'vip-contato', t: 'Entrar em contato com o <b>VIP da sua cidade</b>.' },
+      { id: 'vip-voo',     t: 'Confirmar o horário de chegada do voo.' },
+      { id: 'vip-busca',   t: 'Buscar o VIP no aeroporto.' },
+      { id: 'vip-hotel',   t: 'Levar o VIP até o hotel <i>(informaremos o hotel)</i>.' },
+      { id: 'local-ok',    t: 'Confirmar se está tudo pronto no local do evento.' }
+    ] },
+    { quando: 'Já garantido', titulo: 'Estrutura e conteúdo', partes: [
+      { cab: 'A iGreen já disponibilizou', jaTem: ['Espaço contratado', 'Cadeiras', 'Água e café', 'Estrutura de audiovisual', 'Retroprojetor', 'Par de LEDs decorativos', '1 técnico de som durante o evento'] },
+      { cab: 'A iGreen enviará', jaTem: ['Apresentação oficial', 'Vídeos', 'Playlist'] },
+      { cab: 'Materiais opcionais', texto: 'Banners, certificados e demais materiais impressos ficam <strong>a critério da organização local</strong>. Se vocês já têm materiais da iGreen, podem usá-los.' }
+    ], itens: [
+      { id: 'canais-som', t: 'Verificar com o técnico os <b>2 canais de som contratados</b> — um para os vídeos no PPT e outro para as músicas.' }
+    ] },
+    { quando: 'Na chegada', titulo: 'Ao chegar no evento', itens: [
+      { id: 'chegar-cedo', t: 'Chegar com <b>antecedência</b>.' },
+      { id: 'cadeiras',    t: 'Reservar as cadeiras do <b>VIP, Diretores</b> e qualificações superiores.' },
+      { id: 'testar',      t: 'Testar todos os equipamentos:', sub: ['Som', 'Microfones', 'Retroprojetor', 'Slides', 'Vídeos', 'Playlist', 'Internet'] },
+      { id: 'iluminacao',  t: 'Conferir a iluminação.' },
+      { id: 'musica',      t: 'Colocar música ambiente animada antes da abertura.' },
+      { id: 'foto-espaco', t: 'Enviar no grupo a foto do espaço pronto, <b>antes da abertura</b>.' },
+      { id: 'portas',      t: 'Abrir as portas <b>pontualmente</b>.' }
+    ] },
+    { quando: '{checkin}', titulo: 'Check-in', itens: [
+      { id: 'link-oficial', t: 'Utilizar o <b>link oficial</b> de check-in da sua cidade (está na aba <a href="#checkin">Check-in</a>).' },
+      { id: 'qr-celular',   t: 'Fazer a leitura dos <b>QR Codes</b> pelo celular com internet.' }
+    ] },
+    { quando: '{inicio}', titulo: 'Abertura e ordem do evento', ordem: true },
+    { quando: 'Durante', titulo: 'Durante o evento', itens: [
+      { id: 'enviar-grupo', t: 'Enviar vídeos e fotos durante o evento no grupo.' },
+      { id: 'foto-oficial', t: 'Registrar a <b>foto oficial</b> com todos os participantes.' }
+    ] }
+  ],
+  /* a "Ordem do evento" do checklist (bloco 05 da arte), sem o "18H00
+     encerramento máximo" — ver a nota do cronograma */
+  ordem: ['Boas-vindas do Líder Regional', 'Chamar o VIP', 'APN', 'Reconhecimento', 'Start (10 passos)'],
+
+  /* OS ATALHOS do Início — um por aba */
+  atalhos: [
+    { aba: 'ingressos', icone: 'ingresso', titulo: 'Ingressos e lotes', texto: 'O lote de hoje, a compra mínima, o pagamento e o link de compra de cada cidade.' },
+    { aba: 'checkin',   icone: 'qr',       titulo: 'Check-in',          texto: 'O link de check-in da sua cidade e o passo a passo da leitura dos QR Codes.' },
+    { aba: 'midias',    icone: 'camera',   titulo: 'Mídias',            texto: 'O que registrar em foto e vídeo, e as dicas para gravar bem com o celular.' },
+    { aba: 'checklist', icone: 'lista',    titulo: 'Checklist',         texto: 'Tudo o que fazer antes, na chegada e durante o evento, para ir marcando.' },
+    { aba: 'contatos',  icone: 'telefone', titulo: 'Contatos',          texto: 'Audiovisual, local do evento e outros fornecedores da sua cidade.' }
+  ]
+};
+</script>
+
+<script>
+(function(){
+  'use strict';
+  const D = DADOS;
+  const $  = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const ic = (n, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const guarda = {
+    ler(k){ try { return localStorage.getItem('summit:' + k); } catch(e){ return null; } },
+    pôr(k, v){ try { v == null ? localStorage.removeItem('summit:' + k) : localStorage.setItem('summit:' + k, v); } catch(e){} }
+  };
+
+  /* ---------- AS DATAS ----------
+     Tudo em dia de calendário local, ao meio-dia: sem fuso, sem horário de
+     verão empurrando a data para o dia anterior. ?hoje=2026-10-19 no
+     endereço simula outro dia (para conferir a régua dos lotes). */
+  const dia = iso => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d, 12); };
+  const somaDias = (dt, n) => { const x = new Date(dt); x.setDate(x.getDate() + n); return x; };
+  const fimDoMes = dt => new Date(dt.getFullYear(), dt.getMonth() + 1, 0, 12);
+  const inicioMesSeguinte = dt => new Date(dt.getFullYear(), dt.getMonth() + 1, 1, 12);
+  const mesmoDia = (a, b) => a.toDateString() === b.toDateString();
+  const ddmm = dt => String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0');
+  const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const HOJE = (() => {
+    const q = new URLSearchParams(location.search).get('hoje');
+    if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) return dia(q);
+    const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 12);
+  })();
+  const diasAte = dt => Math.round((dt - HOJE) / 864e5);
+
+  /* A RÉGUA DOS LOTES de uma cidade. Lançamento = o Summit deste mês
+     (c.evento); à venda = o próximo (c.proximo). Um lote cuja janela
+     ficou vazia (próximo evento no mesmo mês do lançamento) é pulado. */
+  function lotesDe(c){
+    const lanc = dia(c.evento), ev = dia(c.proximo), vespera = somaDias(ev, -1);
+    const fim2 = fimDoMes(lanc) < vespera ? fimDoMes(lanc) : vespera;
+    const ini3 = inicioMesSeguinte(lanc);
+    const janelas = [
+      [lanc, lanc],
+      [somaDias(lanc, 1), fim2],
+      [ini3, vespera],
+      [ev, ev]
+    ];
+    return D.lotes.map((l, i) => ({ ...l, de: janelas[i][0], ate: janelas[i][1] }))
+      .filter(l => l.de <= l.ate);
+  }
+  const dataLote = l => mesmoDia(l.de, l.ate) ? ddmm(l.de) : ddmm(l.de) + ' a ' + ddmm(l.ate);
+  const reais = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+  /* ---------- A CIDADE — a variável única ---------- */
+  const rotuloCidade = c => c.nome + ' – ' + c.uf;
+  const chaveCidade = c => c.nome + '|' + c.uf;
+  /* ?cidade=belo-horizonte-mg no endereço já abre na cidade — para mandar
+     no grupo de uma cidade o link pronto. Vale mais que a cidade guardada. */
+  const normal = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const slug = c => normal(c.nome + ' ' + c.uf).replace(/[^a-z0-9]+/g, '-');
+  const pedida = new URLSearchParams(location.search).get('cidade');
+  let cidade = (pedida && D.cidades.find(c => slug(c) === normal(pedida)))
+            || D.cidades.find(c => chaveCidade(c) === guarda.ler('cidade')) || null;
+  if (cidade) guarda.pôr('cidade', chaveCidade(cidade));
+
+  function montaSeletores(){
+    const opc = '<option value="">Escolha a sua cidade</option>' +
+      D.cidades.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        .map(c => '<option value="' + esc(chaveCidade(c)) + '">' + esc(rotuloCidade(c)) + '</option>').join('');
+    $$('[data-seletor-cidade]').forEach(s => {
+      s.innerHTML = opc;
+      s.addEventListener('change', () => escolhe(s.value));
+    });
+  }
+  /* trocar a cidade reescreve o ?cidade= do endereço (sem recarregar):
+     o link copiado da barra, ou de dentro do Escritório Virtual, já leva
+     a cidade escolhida, e o ?cidade= velho não volta a mandar no reload. */
+  function escolhe(chave){
+    cidade = D.cidades.find(c => chaveCidade(c) === chave) || null;
+    guarda.pôr('cidade', cidade ? chaveCidade(cidade) : null);
+    try {
+      const u = new URL(location.href);
+      cidade ? u.searchParams.set('cidade', slug(cidade)) : u.searchParams.delete('cidade');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch(e){}
+    pintaCidade();
+  }
+
+  /* ---------- COPIAR — a área de transferência pode estar bloqueada
+     dentro do Escritório Virtual (iframe sem a permissão clipboard-write);
+     aí cai no caminho antigo do textarea selecionado. ---------- */
+  function copia(txt, aviso){
+    const ok = () => mostra(aviso || 'Link copiado');
+    const velho = () => {
+      const t = document.createElement('textarea');
+      t.value = txt; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      let deu = false; try { deu = document.execCommand('copy'); } catch(e){}
+      t.remove();
+      deu ? ok() : mostra('Não deu para copiar. Toque e segure o link para copiar.');
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(ok, velho);
+    else velho();
+  }
+  let tempoToast;
+  function mostra(msg){
+    const t = $('#toast'); t.textContent = msg; t.classList.add('ve');
+    clearTimeout(tempoToast); tempoToast = setTimeout(() => t.classList.remove('ve'), 2200);
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-copiar]');
+    if (!b) return;
+    copia(b.getAttribute('data-copiar'), b.getAttribute('data-aviso'));
+    b.classList.add('copiado'); setTimeout(() => b.classList.remove('copiado'), 1600);
+  });
+  const btnCopiar = (url, rot, aviso) => '<button class="mini" type="button" data-copiar="' + esc(url) + '"' + (aviso ? ' data-aviso="' + esc(aviso) + '"' : '') + '>' + ic('copiar') + (rot || 'Copiar') + '</button>';
+  const btnAbrir = (url, rot, acc) => '<a class="mini' + (acc ? ' acc' : '') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + ic('externo') + (rot || 'Abrir') + '</a>';
+  const zap = txt => 'https://wa.me/?text=' + encodeURIComponent(txt);
+
+  /* ---------- PINTA O QUE DEPENDE DA CIDADE ---------- */
+  function pintaCidade(){
+    document.documentElement.classList.toggle('sem-cidade', !cidade);
+    $$('[data-seletor-cidade]').forEach(s => { s.value = cidade ? chaveCidade(cidade) : ''; });
+    pintaHeroi(); pintaMeuLote(); pintaMeuCheckin(); pintaMeusContatos();
+    pintaListas();
+  }
+
+  function pintaHeroi(){
+    const el = $('#meu-summit-txt'), bt = $('#botao-checkin');
+    $('span', bt).textContent = cidade ? 'Check-in · ' + cidade.nome : 'Link de check-in';
+    bt.setAttribute('aria-label', cidade ? 'Abrir o link de check-in de ' + rotuloCidade(cidade) : 'Abrir a aba de check-in');
+    if (!cidade){ el.textContent = 'Veja a data do seu Summit, o link de check-in e o lote de hoje.'; return; }
+    const ev = dia(cidade.evento), n = diasAte(ev);
+    const quando = n > 1 ? '<span class="faltam">faltam ' + n + ' dias</span>'
+                 : n === 1 ? '<span class="faltam">é amanhã</span>'
+                 : n === 0 ? '<span class="faltam">é hoje!</span>'
+                 : 'já aconteceu — próximo: <b>' + ddmm(dia(cidade.proximo)) + '</b>';
+    el.innerHTML = 'Summit <b>' + esc(cidade.nome) + '</b>: ' + SEMANA[ev.getDay()] + ', <b>' + ddmm(ev) + '</b> · check-in ' + D.horario.checkin + ' · ' + quando;
+  }
+
+  function pintaMeuLote(){
+    const el = $('#meu-lote');
+    if (!cidade){
+      el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima: aparece o lote vigente hoje, as datas de cada lote e o link de compra do próximo Summit da cidade.</p>';
+      return;
+    }
+    const lotes = lotesDe(cidade), ev = dia(cidade.proximo), lanc = dia(cidade.evento);
+    const iAgora = lotes.findIndex(l => HOJE >= l.de && HOJE <= l.ate);
+    let estado;
+    if (HOJE < lanc) estado = '<span class="estado espera">Vendas abrem em ' + ddmm(lanc) + ', no fim da APN</span>';
+    else if (HOJE > ev) estado = '<span class="estado fim">Evento de ' + ddmm(ev) + ' realizado</span>';
+    else estado = '<span class="estado">' + esc(lotes[iAgora].nome) + ' vigente: ' + reais(lotes[iAgora].valor) + '</span>';
+    el.innerHTML =
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">' +
+        '<div><span class="quem">Próximo Summit à venda</span><h3 style="margin-top:6px;font-size:22px">' + esc(rotuloCidade(cidade)) + ' · ' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + '</h3></div>' + estado +
+      '</div>' +
+      '<ol class="regua" style="--qtd:' + lotes.length + '">' +
+        lotes.map((l, i) => '<li class="' + (i === iAgora ? 'agora' : (HOJE > l.ate ? 'passou' : '')) + '">' +
+          '<span class="l-nome">' + esc(l.nome) + '</span><span class="l-valor num">' + reais(l.valor) + '</span><span class="l-data num">' + dataLote(l) + '</span></li>').join('') +
+      '</ol>' +
+      '<div class="linha-acoes">' +
+        '<a class="botao-principal" href="' + esc(cidade.compra) + '" target="_blank" rel="noopener">Comprar ingressos ' + ic('externo') + '</a>' +
+        btnCopiar(cidade.compra, 'Copiar link') +
+        '<a class="mini" href="' + esc(zap('Ingressos do iGreen Summit ' + rotuloCidade(cidade) + ' (' + ddmm(ev) + '): ' + cidade.compra)) + '" target="_blank" rel="noopener">' + ic('conversa') + 'Mandar no WhatsApp</a>' +
+      '</div>' +
+      '<p class="txt" style="margin-top:14px;font-size:13.5px">O lançamento é o Summit de ' + ddmm(lanc) + ': as vendas abrem no fim da APN, quando o VIP escolhe o estado no mapa.</p>';
+  }
+
+  function pintaMeuCheckin(){
+    const el = $('#meu-checkin');
+    if (!cidade){
+      el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima para ver o link de check-in da sua cidade, pronto para copiar e mandar para a equipe.</p>';
+      return;
+    }
+    const ev = dia(cidade.evento), n = diasAte(ev);
+    const estado = n < 0 ? '<span class="estado fim">Evento realizado</span>'
+                 : n === 0 ? '<span class="estado">É hoje · check-in ' + D.horario.checkin + '</span>'
+                 : '<span class="estado espera">' + (n === 1 ? 'Amanhã' : 'Faltam ' + n + ' dias') + '</span>';
+    el.innerHTML =
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">' +
+        '<div><span class="quem">Seu link de check-in</span><h3 style="margin-top:6px;font-size:22px">' + esc(rotuloCidade(cidade)) + ' · ' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + '</h3></div>' + estado +
+      '</div>' +
+      '<div class="link-grande">' + esc(cidade.checkin) + '</div>' +
+      '<div class="linha-acoes">' +
+        '<button class="botao-principal" type="button" data-copiar="' + esc(cidade.checkin) + '" data-aviso="Link de check-in copiado">' + ic('copiar') + 'Copiar o link</button>' +
+        btnAbrir(cidade.checkin, 'Abrir o check-in') +
+        '<a class="mini" href="' + esc(zap('Check-in do iGreen Summit ' + rotuloCidade(cidade) + ' (' + ddmm(ev) + '). Abra no celular, com internet, e leia o QR Code de cada convidado: ' + cidade.checkin)) + '" target="_blank" rel="noopener">' + ic('conversa') + 'Mandar para a equipe</a>' +
+      '</div>';
+  }
+
+  function contatoHTML(f){
+    const tel = (f.telefone || '').replace(/\D/g, '');
+    const br = tel.length >= 10 && tel.length <= 11 ? '55' + tel : tel;
+    return '<div class="contato"><div>' +
+      '<div class="tipo">' + esc(f.tipo || 'Contato') + '</div>' +
+      '<div class="nome">' + esc(f.nome || '—') + '</div>' +
+      (f.telefone ? '<div class="obs-c num">' + esc(f.telefone) + (f.obs ? ' · ' + esc(f.obs) : '') + '</div>' : (f.obs ? '<div class="obs-c">' + esc(f.obs) + '</div>' : '')) +
+      '</div>' + (tel ? '<div class="c-acoes">' +
+        '<a class="mini" href="tel:+' + br + '">' + ic('telefone') + 'Ligar</a>' +
+        '<a class="mini" href="https://wa.me/' + br + '" target="_blank" rel="noopener">' + ic('conversa') + 'WhatsApp</a>' +
+      '</div>' : '') + '</div>';
+  }
+  const semContato = '<p class="txt">Contatos em atualização. Assim que a lista dos fornecedores desta cidade chegar, ela aparece aqui.</p>';
+  function pintaMeusContatos(){
+    const el = $('#meus-contatos');
+    if (!cidade){ el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima para ver os fornecedores da sua cidade.</p>'; return; }
+    const lista = D.fornecedores[cidade.nome] || [];
+    el.innerHTML = '<span class="quem">Fornecedores</span><h3 style="margin-top:6px;font-size:22px;margin-bottom:8px">' + esc(rotuloCidade(cidade)) + '</h3>' +
+      (lista.length ? lista.map(contatoHTML).join('') : semContato);
+  }
+
+  /* ---------- AS LISTAS DE TODAS AS CIDADES ---------- */
+  const filtros = { compra: '', checkin: '' };
+  function pintaListas(){
+    const passa = (c, f) => !f || normal(c.nome + ' ' + c.uf).includes(normal(f));
+    const eMinha = c => cidade && chaveCidade(c) === chaveCidade(cidade);
+    const minha = c => eMinha(c) ? ' class="minha"' : '';
+    const tag = c => eMinha(c) ? ' <em class="tag-minha">Sua cidade</em>' : '';
+    const compra = D.cidades.filter(c => passa(c, filtros.compra));
+    $('#lista-compra').innerHTML = compra.length ? compra.map(c => {
+      const ev = dia(c.proximo);
+      return '<li' + minha(c) + '><span class="c-nome">' + esc(rotuloCidade(c)) + tag(c) + '<small>' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + '</small></span>' +
+        '<span class="c-acoes">' + btnCopiar(c.compra) + btnAbrir(c.compra, 'Comprar', true) + '</span></li>';
+    }).join('') : '<li class="vazio">Nenhuma cidade com esse nome.</li>';
+    const chk = D.cidades.filter(c => passa(c, filtros.checkin));
+    $('#lista-checkin').innerHTML = chk.length ? chk.map(c => {
+      const ev = dia(c.evento);
+      return '<li' + minha(c) + '><span class="c-nome">' + esc(rotuloCidade(c)) + tag(c) + '<small>' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + ' · check-in ' + D.horario.checkin + '</small></span>' +
+        '<span class="c-acoes">' + btnCopiar(c.checkin, 'Copiar', 'Link de check-in copiado') + btnAbrir(c.checkin, 'Abrir', true) + '</span></li>';
+    }).join('') : '<li class="vazio">Nenhuma cidade com esse nome.</li>';
+  }
+  $$('[data-busca]').forEach(inp => inp.addEventListener('input', () => { filtros[inp.dataset.busca] = inp.value; pintaListas(); }));
+
+  /* ---------- O CONTEÚDO FIXO, montado do bloco OS DADOS ---------- */
+  function montaFixo(){
+    $$('[data-edicao]').forEach(e => e.textContent = D.edicao);
+    $$('[data-atualizado]').forEach(e => e.textContent = D.atualizado);
+    $$('[data-hora-checkin]').forEach(e => e.textContent = D.horario.checkin);
+    $$('[data-hora-inicio]').forEach(e => e.textContent = D.horario.inicio);
+    $$('[data-apn]').forEach(a => a.href = D.apn.url);
+    $$('[data-apn-txt]').forEach(e => e.textContent = D.apn.url.replace(/^https?:\/\//, '').replace(/\/$/, ''));
+    $$('[data-copiar-apn]').forEach(b => b.setAttribute('data-copiar', D.apn.url));
+    $$('[data-drive]').forEach(a => a.href = D.drive.pasta);
+    $('#chamada-drive').href = D.drive.pasta;
+    $$('[data-escritorio]').forEach(a => a.href = D.escritorio);
+    $$('[data-eventos]').forEach(a => a.href = D.eventos);
+
+    $('#passos-apn').innerHTML = D.apn.passos.map(p => '<li><span>' + p + '</span></li>').join('');
+    $('#passos-checkin').innerHTML = D.checkin.map((p, i) => '<li data-reveal style="--i:' + i + '"><span>' + p + '</span></li>').join('');
+
+    const start = D.drive.pastas.find(p => p.id === 'start');
+    $('#conducao-lista').innerHTML = D.conducao.map((c, i) =>
+      '<div class="cartao" data-reveal style="--i:' + (9 + i) + '">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between"><div class="selo-ic">' + ic(c.icone) + '</div><span class="etapa-num">0' + (i + 1) + '</span></div>' +
+        '<span class="quem">' + esc(c.quem) + '</span><p class="txt" style="margin-top:0">' + c.texto + '</p>' +
+        (c.link === 'start' && start ? '<a class="mini" style="align-self:flex-start;margin-top:auto" href="' + esc(start.url) + '" target="_blank" rel="noopener">' + ic('pasta') + 'Apresentação START no Drive</a>' : '') +
+      '</div>').join('');
+
+    /* o cronograma: um cabeçalho + uma linha por bloco + as linhas filhas.
+       A faixa alternada (.par) conta só os blocos de primeiro nível, como na arte. */
+    let html = '<div class="crono-linha crono-cab" role="row"><span class="c-ic" role="columnheader"><span class="sr">Ícone</span></span><span class="c-nome" role="columnheader">Bloco</span><span class="c-t" role="columnheader">Duração máx.</span><span class="c-t" role="columnheader">Início</span><span class="c-t" role="columnheader">Término</span></div>';
+    D.cronograma.forEach((b, i) => {
+      const linha = (x, cls, icone) => '<div class="crono-linha ' + cls + '" role="row">' +
+        '<span class="c-ic" role="cell">' + (icone ? ic(icone) : '') + '</span>' +
+        '<span class="c-nome" role="cell"><span>' + esc(x.bloco) + '<span class="c-dur-m">' + x.ini + ' – ' + x.fim + ' · ' + x.dur + '</span></span></span>' +
+        '<span class="c-t d" role="cell">' + x.dur + '</span><span class="c-t" role="cell">' + x.ini + '</span><span class="c-t" role="cell">' + x.fim + '</span></div>';
+      html += linha(b, (i % 2 ? 'par ' : '') + (b.forte ? 'forte' : ''), b.icone);
+      (b.filhos || []).forEach(f => { html += linha(f, 'filho' + (i % 2 ? ' par' : ''), null); });
+    });
+    $('#crono').innerHTML = html;
+
+    $('#drive-lista').innerHTML = D.drive.pastas.map((p, i) =>
+      '<a class="cartao pasta" href="' + esc(p.url) + '" target="_blank" rel="noopener" data-reveal style="--i:' + (13 + i) + '">' +
+        '<span class="selo-ic">' + ic(p.icone) + '</span><span><h3>' + esc(p.titulo) + '</h3><p>' + esc(p.texto) + '</p></span>' + ic('externo', 'seta') +
+      '</a>').join('');
+
+    $('#atalhos-lista').innerHTML = D.atalhos.map(a =>
+      '<a class="cartao atalho" href="#' + a.aba + '"><span class="selo-ic">' + ic(a.icone) + '</span><h3>' + esc(a.titulo) + '</h3><p class="txt" style="margin-top:0">' + esc(a.texto) + '</p><span class="ir">Abrir ' + ic('seta') + '</span></a>').join('');
+
+    $('#regra-lotes').innerHTML = D.lotes.map(l => '<li><span><b>' + esc(l.nome) + ' · ' + reais(l.valor) + '</b> — ' + esc(l.regra) + '.</span></li>').join('');
+    $('#compra-minima').innerHTML = D.compraMinima.map(c => '<li><b class="num">' + c.qtd + '</b><small>ingressos</small><span>' + esc(c.cargo) + '</span></li>').join('');
+    $('#pagamento').innerHTML = D.pagamento.map(p => '<li><span>' + p + '</span></li>').join('');
+
+    $('#midias-blocos').innerHTML = D.midias.map((b, i) =>
+      '<div class="cartao" data-reveal style="--i:' + (4 + i) + (b.largo ? ';grid-column:1/-1' : '') + '">' +
+        '<div class="bloco-cab"><span class="bloco-num">0' + (i + 1) + '</span><h3>' + esc(b.titulo) + '</h3></div>' +
+        '<ul class="itens' + (b.largo ? ' grade g2' : '') + '"' + (b.largo ? ' style="gap:12px 24px"' : '') + '>' + b.itens.map(it => '<li>' + ic(it[0]) + '<span>' + it[1] + '</span></li>').join('') + '</ul>' +
+      '</div>').join('');
+    $('#midias-resumo').innerHTML = D.midiasResumo.map((r, i) => '<span class="chip"><i>' + String(i + 1).padStart(2, '0') + '</i>' + esc(r) + '</span>').join('');
+
+    montaChecklist();
+    $$('[data-reveal]').forEach(e => { if (!e.style.getPropertyValue('--i')) e.style.setProperty('--i', 0); });
+  }
+
+  /* ---------- O CHECKLIST — a trilha ---------- */
+  function montaChecklist(){
+    let marcados = {};
+    try { marcados = JSON.parse(guarda.ler('checklist') || '{}') || {}; } catch(e){}
+    const caixa = '<span class="caixa">' + ic('check') + '</span>';
+    const hora = q => q.replace('{checkin}', D.horario.checkin).replace('{inicio}', D.horario.inicio);
+    const lista = (itens, cls) => '<ul class="marcar' + (cls ? ' ' + cls : '') + '">' + itens.map(it =>
+      '<li><label><input type="checkbox" data-item="' + it.id + '"' + (marcados[it.id] ? ' checked' : '') + '>' + caixa + '<span class="t">' + it.t + '</span></label>' +
+      (it.sub ? '<div class="sub"><div class="chips">' + it.sub.map(sb => {
+        const id = it.id + ':' + normal(sb);
+        return '<label><input type="checkbox" data-item="' + id + '"' + (marcados[id] ? ' checked' : '') + '><span class="chip">' + esc(sb) + '</span></label>';
+      }).join('') + '</div></div>' : '') + '</li>').join('') + '</ul>';
+
+    const etapas = D.checklist.map((b, i) => {
+      let corpo = '';
+      if (b.partes) corpo += '<div class="partes">' + b.partes.map(pt => '<div><h4>' + esc(pt.cab) + '</h4>' +
+        (pt.jaTem ? '<ul class="ja-tem" style="margin-top:0">' + pt.jaTem.map(t => '<li>' + caixa + '<span>' + esc(t) + '</span></li>').join('') + '</ul>' : '') +
+        (pt.texto ? '<p class="txt">' + pt.texto + '</p>' : '') + '</div>').join('') + '</div>';
+      if (b.itens) corpo += lista(b.itens, b.partes ? 'solta' : '');
+      if (b.ordem) corpo += '<span class="quem">Abertura · ' + D.horario.inicio + '</span><ol class="ordem-passos">' +
+        D.ordem.map(o => '<li>' + esc(o) + '</li>').join('') + '</ol>' +
+        '<p class="txt" style="margin-top:12px;font-size:14px">Os horários de cada bloco estão no <a href="#cronograma">cronograma</a>.</p>';
+      const marca = b.itens ? '<b class="marca-no">' + String(i + 1).padStart(2, '0') + '</b>' : ic('relogio', 'marca-no');
+      return '<li class="etapa' + (b.itens ? '' : ' info') + '" data-etapa="' + i + '" data-reveal style="--i:' + (4 + i) + '">' +
+        '<span class="quando">' + esc(hora(b.quando)) + '</span>' +
+        '<span class="no" aria-hidden="true"><span class="bola">' + marca + ic('check', 'visto') + '</span></span>' +
+        '<div class="corpo"><div class="corpo-cab"><h3>' + esc(b.titulo) + '</h3>' + (b.itens ? '<span class="conta"></span>' : '') + '</div>' +
+        '<div class="cartao">' + corpo + '</div></div></li>';
+    });
+    /* o fim da trilha: o "Importante" da arte, com o nó que acende quando tudo foi marcado */
+    etapas.push('<li class="etapa ultima" data-etapa="fim" data-reveal style="--i:' + (4 + D.checklist.length) + '">' +
+      '<span class="quando">Fim</span><span class="no" aria-hidden="true"><span class="bola">' + ic('check-c', 'marca-no') + ic('check', 'visto') + '</span></span>' +
+      '<div class="corpo"><div class="importante"><h3>Importante</h3><p>O sucesso do iGreen Summit depende da organização e do comprometimento de cada líder. Contamos com você para entregar uma <strong>experiência de excelência</strong> em sua cidade.</p></div></div></li>');
+    $('#checklist-blocos').innerHTML = etapas.join('');
+
+    /* a conta: cada etapa escreve --f (o anel) e acende o trecho de linha
+       que sai dela quando fecha. Etapa de consulta (sem itens) segue a
+       anterior — acende se a de antes acendeu —, para a linha não ganhar
+       um trecho aceso solto no meio. */
+    const conta = () => {
+      const todos = $$('#checklist-blocos [data-item]'), feitos = todos.filter(x => x.checked);
+      const p = todos.length ? feitos.length / todos.length : 0;
+      $('#barra-p').style.setProperty('--p', p.toFixed(3));
+      $('#barra-p').setAttribute('aria-valuenow', Math.round(p * 100));
+      $('#progresso-txt').innerHTML = '<b class="num">' + feitos.length + '</b> de <span class="num">' + todos.length + '</span> feitos';
+      let anterior = true;
+      $$('#checklist-blocos .etapa').forEach(et => {
+        const cx = $$('[data-item]', et), ok = cx.filter(x => x.checked).length;
+        let feita;
+        if (et.dataset.etapa === 'fim') feita = p === 1;
+        else if (!cx.length) feita = anterior;
+        else {
+          feita = ok === cx.length;
+          et.style.setProperty('--f', (ok / cx.length).toFixed(3));
+          $('.conta', et).textContent = ok + '/' + cx.length;
+        }
+        et.classList.toggle('feita', feita && (cx.length > 0 || et.dataset.etapa === 'fim'));
+        et.classList.toggle('acesa', feita);
+        et.style.setProperty('--cheia', feita ? 1 : 0);
+        anterior = feita;
+      });
+    };
+    $('#checklist-blocos').addEventListener('change', e => {
+      const x = e.target.closest('[data-item]'); if (!x) return;
+      x.checked ? (marcados[x.dataset.item] = 1) : delete marcados[x.dataset.item];
+      guarda.pôr('checklist', JSON.stringify(marcados)); conta();
+    });
+    $('#limpar-checklist').addEventListener('click', () => {
+      marcados = {}; guarda.pôr('checklist', null);
+      $$('#checklist-blocos [data-item]').forEach(x => x.checked = false); conta();
+    });
+    conta();
+  }
+
+  /* ---------- AS ABAS ---------- */
+  const abas = $$('[data-aba]');
+  const nav = $('#nav'), menu = $('#menu'), abreMenu = $('#abre-menu');
+  const itemNav = a => '<a href="#' + a.id + '">' + esc(a.dataset.aba) + '</a>';
+  nav.insertAdjacentHTML('beforeend', abas.map(itemNav).join(''));
+  menu.innerHTML = abas.map(itemNav).join('');
+  $('#rodape-links').innerHTML = abas.map(itemNav).join('') + '<a href="' + esc(D.drive.pasta) + '" target="_blank" rel="noopener">Drive</a>';
+
+  function tubo(){
+    const a = $('a[aria-current]', nav);
+    if (!a || !nav.offsetWidth){ nav.style.setProperty('--tubo-o', 0); return; }
+    nav.style.setProperty('--tubo-x', (a.offsetLeft + a.offsetWidth / 2 - 14) + 'px');
+    nav.style.setProperty('--tubo-o', 1);
+  }
+  /* o endereço pode apontar para uma aba (#checkin) ou para um trecho
+     dentro de uma aba (#cronograma): abre a aba dona e rola até o trecho */
+  function rota(primeira){
+    const alvo = decodeURIComponent(location.hash.slice(1)) || 'inicio';
+    const el = document.getElementById(alvo);
+    const dona = (el && el.closest('[data-aba]')) || abas[0];
+    abas.forEach(a => { a.hidden = a !== dona; });
+    $$('#nav a, #menu a').forEach(a => {
+      a.getAttribute('href') === '#' + dona.id ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+    });
+    document.title = (dona.id === 'inicio' ? '' : dona.dataset.aba + ' · ') + 'Portal do Coordenador · iGreen Summit';
+    fechaMenu();
+    requestAnimationFrame(() => {
+      tubo();
+      if (el && el !== dona) el.scrollIntoView({ behavior: primeira ? 'auto' : 'smooth', block: 'start' });
+      else if (!primeira) window.scrollTo(0, 0);
+    });
+  }
+  window.addEventListener('hashchange', () => rota(false));
+  window.addEventListener('resize', tubo);
+
+  function fechaMenu(){ menu.hidden = true; abreMenu.setAttribute('aria-expanded', 'false'); }
+  abreMenu.addEventListener('click', () => {
+    const abre = menu.hidden; menu.hidden = !abre; abreMenu.setAttribute('aria-expanded', String(abre));
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fechaMenu(); });
+  document.addEventListener('click', e => { if (!menu.hidden && !e.target.closest('#menu, #abre-menu')) fechaMenu(); });
+
+  /* links externos abrem fora: dentro do Escritório Virtual o portal pode
+     estar num iframe, e o site de Eventos ou o Drive não podem abrir dentro dele */
+  function externos(){
+    $$('a[data-ext], a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+  }
+
+  /* ---------- AS PARTÍCULAS DO HERÓI — quantidade do array, índice por --i ---------- */
+  function particulas(){
+    const p = $('#particulas'), N = 18;
+    let h = '';
+    for (let i = 0; i < N; i++){
+      const x = (i * 37 + 11) % 100, t = ((i * 53) % 10) / 10, d = ((i * 29) % 7 - 3) / 3;
+      h += '<i class="particula" style="--i:' + i + ';--x:' + x + ';--t:' + t + ';--d:' + d.toFixed(2) + '"></i>';
+    }
+    p.insertAdjacentHTML('beforeend', h);
+  }
+
+  montaSeletores();
+  montaFixo();
+  particulas();
+  pintaCidade();
+  externos();
+  rota(true);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(tubo);
+})();
+</script>
+</body>
+</html>
