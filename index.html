@@ -91,13 +91,28 @@ strong{font-weight:650;color:var(--ink)}
 .pular:focus{left:12px}
 
 /* O FUNDO — o orbe do institucional, o mesmo arquivo do Cruzeiro
-   (91 KB). Preso atrás de tudo; cada aba passa por cima dele. */
+   (91 KB). Preso atrás de tudo; cada aba passa por cima dele.
+   O PLAY NO MEIO DA TELA (print do Matheus no iPhone, 15/10/2026): quando
+   o Safari não deixa o vídeo tocar sozinho — modo de economia de bateria,
+   dados reduzidos —, ele desenha o botão de play nativo em cima do <video>,
+   e aqui o vídeo cobre a tela inteira. Duas camadas agora:
+   · ::before = o pôster parado do orbe (960×540, 2,5 KB), sempre lá;
+   · o <video> nasce invisível e só aparece com a classe .tocando, que o
+     script põe no evento `playing` — vídeo que não toca nunca aparece, e o
+     botão dele junto. O pseudo-elemento do WebKit some com o botão também,
+     por garantia. Mesma máscara nas duas camadas: a troca é invisível. */
 .fundo-orbe{ position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden }
-.fundo-orbe video{
-  width:100%; height:100%; object-fit:cover; opacity:.7;
+.fundo-orbe::before,.fundo-orbe video{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7;
   -webkit-mask-image:radial-gradient(140% 110% at 50% 50%, #000 50%, transparent 100%);
           mask-image:radial-gradient(140% 110% at 50% 50%, #000 50%, transparent 100%);
 }
+.fundo-orbe::before{ content:""; background:url('assets/video/orbe-poster.webp') center / cover no-repeat }
+.fundo-orbe video{ opacity:0; transition:opacity .8s }
+.fundo-orbe video.tocando{ opacity:.7 }
+.fundo-orbe video::-webkit-media-controls,
+.fundo-orbe video::-webkit-media-controls-start-playback-button,
+.fundo-orbe video::-webkit-media-controls-overlay-play-button{ display:none!important; -webkit-appearance:none }
 
 /* ============================================================
    BARRA DO TOPO — a do Cruzeiro: marca, pílula de vidro com o TUBO
@@ -808,7 +823,7 @@ strong{font-weight:650;color:var(--ink)}
 </svg>
 
 <div class="fundo-orbe" aria-hidden="true">
-  <video src="assets/video/orbe.mp4" poster="assets/video/orbe-poster.webp" autoplay muted loop playsinline preload="auto"></video>
+  <video src="assets/video/orbe.mp4" autoplay muted loop playsinline preload="auto" disablepictureinpicture tabindex="-1"></video>
 </div>
 
 <header class="topo">
@@ -905,21 +920,6 @@ strong{font-weight:650;color:var(--ink)}
     </div>
   </div>
 
-  <!-- MATERIAIS -->
-  <div class="secao" id="materiais">
-    <div class="dentro">
-      <header class="cab" data-reveal style="--i:12">
-        <span class="rotulo">Drive · atualizado todo mês</span>
-        <h2 class="titulo">Materiais de <em>apoio</em></h2>
-        <p>Peças de divulgação, a apresentação START e os materiais de apoio do evento. Baixe sempre do Drive: ele é atualizado mensalmente.</p>
-      </header>
-      <div class="grade g3" id="drive-lista"></div>
-      <div class="linha-acoes" style="justify-content:center">
-        <a class="botao-principal" data-drive data-ext href="#">Abrir a pasta completa <svg class="ic"><use href="#i-externo"/></svg></a>
-      </div>
-    </div>
-  </div>
-
   <!-- ATALHOS -->
   <div class="secao" id="atalhos">
     <div class="dentro">
@@ -928,6 +928,25 @@ strong{font-weight:650;color:var(--ink)}
         <h2 class="titulo">O que mais você <em>precisa</em></h2>
       </header>
       <div class="grade g3" id="atalhos-lista"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= MATERIAIS DE APOIO ======================= -->
+<section class="aba" id="materiais" data-aba="Materiais de apoio" aria-label="Materiais de apoio">
+  <header class="capa">
+    <div class="dentro">
+      <span class="rotulo" data-reveal style="--i:0">Drive · atualizado todo mês</span>
+      <h1 data-reveal style="--i:1">Materiais de <em>apoio</em></h1>
+      <p data-reveal style="--i:2">Peças de divulgação, a apresentação START e os materiais de apoio do evento. Baixe sempre do Drive: ele é atualizado mensalmente.</p>
+    </div>
+  </header>
+  <div class="secao" style="padding-top:0">
+    <div class="dentro">
+      <div class="grade g3" id="drive-lista"></div>
+      <div class="linha-acoes" style="justify-content:center">
+        <a class="botao-principal" data-drive data-ext href="#">Abrir a pasta completa <svg class="ic"><use href="#i-externo"/></svg></a>
+      </div>
     </div>
   </div>
 </section>
@@ -1262,9 +1281,14 @@ const DADOS = {
   ],
 
   /* AS CIDADES — check-in do evento deste mês e compra do próximo, da
-     lista que a Jennifer mandou em 14/10/2026. Para adicionar uma cidade,
-     acrescente uma linha; a ordem aqui é a ordem na tela. */
+     lista que a Jennifer mandou em 14/10/2026, mais Campinas, Pelotas, Belém
+     e Aracaju, que chegaram em 16/10/2026. Para adicionar uma cidade,
+     acrescente uma linha; a ordem aqui é a ordem na tela (por data). */
   cidades: [
+    { nome: 'Campinas',       uf: 'SP', evento: '2026-10-17', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campinas-sp-17-10/checkin', proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campinas-sp-07-11' },
+    { nome: 'Pelotas',        uf: 'RS', evento: '2026-10-17', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-pelotas-rs-17-10/checkin', proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-pelotas-rs-07-11' },
+    { nome: 'Aracaju',        uf: 'SE', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-aracaju-se-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-aracaju-se-08-11' },
+    { nome: 'Belém',          uf: 'PA', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belem-pa-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belem-pa-08-11' },
     { nome: 'Belo Horizonte', uf: 'MG', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-08-11' },
     { nome: 'Brasília',       uf: 'DF', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-08-11' },
     { nome: 'Curitiba',       uf: 'PR', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-08-11' },
@@ -1291,11 +1315,9 @@ const DADOS = {
   ],
 
   /* OS FORNECEDORES — da planilha "Contato LOCAL SUMMIT OUTUBRO.xlsx" (14/10/2026):
-     o local do evento e um telefone de contato, em 27 cidades.
-     ⚠ 4 DELAS NÃO ESTÃO EM `cidades` (Aracaju, Belém, Campinas, Pelotas): vieram na
-     planilha, mas sem link de check-in nem de compra na lista da Jennifer. Aparecem
-     só na lista completa da aba Contatos; quando os links chegarem, é só pôr a
-     cidade em `cidades` e ela passa a ter seletor, check-in e ingressos.
+     o local do evento e um telefone de contato, em 27 cidades — as mesmas 27 de
+     `cidades` desde 16/10/2026. Cidade que estiver aqui e não em `cidades` aparece
+     só na lista completa da aba Contatos, sem seletor, check-in nem ingressos.
      O telefone está COMO VEIO na planilha; quem formata é `fone()` no script:
      · 10 dígitos com o 3º entre 6 e 9 é celular no formato antigo e ganha o 9
        ("62 8591-7147" vira (62) 98591-7147) — desde 2016 todo celular tem 9 dígitos;
@@ -1416,6 +1438,7 @@ const DADOS = {
 
   /* OS ATALHOS do Início — um por aba */
   atalhos: [
+    { aba: 'materiais', icone: 'pasta',    titulo: 'Materiais de apoio', texto: 'A apresentação START, os flyers de cada cidade, os vídeos e a playlist, no Drive.' },
     { aba: 'ingressos', icone: 'ingresso', titulo: 'Ingressos e lotes', texto: 'O lote de hoje, a compra mínima, o pagamento e o link de compra de cada cidade.' },
     { aba: 'checkin',   icone: 'qr',       titulo: 'Check-in',          texto: 'O link de check-in da sua cidade e o passo a passo da leitura dos QR Codes.' },
     { aba: 'midias',    icone: 'camera',   titulo: 'Mídias',            texto: 'O que registrar em foto e vídeo, e as dicas para gravar bem com o celular.' },
@@ -1714,7 +1737,7 @@ const DADOS = {
     $('#crono').innerHTML = html;
 
     $('#drive-lista').innerHTML = D.drive.pastas.map((p, i) =>
-      '<a class="cartao pasta" href="' + esc(p.url) + '" target="_blank" rel="noopener" data-reveal style="--i:' + (13 + i) + '">' +
+      '<a class="cartao pasta" href="' + esc(p.url) + '" target="_blank" rel="noopener" data-reveal style="--i:' + (3 + i) + '">' +
         '<span class="selo-ic">' + ic(p.icone) + '</span><span><h3>' + esc(p.titulo) + '</h3><p>' + esc(p.texto) + '</p></span>' + ic('externo', 'seta') +
       '</a>').join('');
 
@@ -1867,6 +1890,13 @@ const DADOS = {
       h += '<i class="particula" style="--i:' + i + ';--x:' + x + ';--t:' + t + ';--d:' + d.toFixed(2) + '"></i>';
     }
     p.insertAdjacentHTML('beforeend', h);
+  }
+
+  /* o vídeo de fundo só aparece quando toca de verdade (ver .fundo-orbe no CSS) */
+  const orbe = $('.fundo-orbe video');
+  if (orbe){
+    orbe.addEventListener('playing', () => orbe.classList.add('tocando'));
+    const p = orbe.play && orbe.play(); if (p && p.catch) p.catch(() => {});
   }
 
   montaSeletores();
