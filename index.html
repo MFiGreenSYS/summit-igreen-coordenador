@@ -1164,6 +1164,7 @@ strong{font-weight:650;color:var(--ink)}
         <h2 class="titulo">Lista <em>completa</em></h2>
       </header>
       <label class="busca"><svg class="ic"><use href="#i-busca"/></svg><span class="sr">Buscar cidade</span><input type="search" placeholder="Buscar cidade, estado ou local" data-busca="contatos" autocomplete="off"></label>
+      <div id="contatos-aviso" style="max-width:720px;margin:0 auto 14px"></div>
       <ul class="cidades contatos-lista" id="contatos-todos"></ul>
     </div>
   </div>
@@ -1189,8 +1190,7 @@ strong{font-weight:650;color:var(--ink)}
    checklist) só muda se a regra do evento mudar.
    ============================================================ */
 const DADOS = {
-  edicao: 'iGreen Summit · Outubro 2026',
-  atualizado: '14/10/2026',
+  atualizado: '28/10/2026',   /* a edição (Outubro, Novembro...) sai das datas das cidades */
 
   horario: { checkin: '14h00', inicio: '14h30' },
 
@@ -1252,9 +1252,10 @@ const DADOS = {
 
   /* OS LOTES — a regra da Jennifer (14/10/2026). O LANÇAMENTO de um Summit
      é o Summit do mês anterior na mesma cidade: é no fim da APN dele que o
-     VIP abre as vendas pelo mapa. Por isso cada cidade abaixo tem duas
-     datas, `evento` (o deste mês, que lança) e `proximo` (o que está à
-     venda). A régua da aba Ingressos é calculada daí, cidade por cidade. */
+     VIP abre as vendas pelo mapa. Por isso cada cidade em `cidades` guarda
+     a lista de datas: o próximo evento é o que está à venda, e o anterior é
+     o lançamento dele. A régua da aba Ingressos é calculada daí, cidade por
+     cidade. */
   lotes: [
     { nome: 'Lote promocional', valor: 30,  regra: 'somente no dia do lançamento' },
     { nome: '2º lote',          valor: 50,  regra: 'do dia seguinte ao lançamento até o último dia do mês' },
@@ -1280,38 +1281,50 @@ const DADOS = {
     'Leia o <b>QR Code</b> de cada convidado para validar a entrada no sistema.'
   ],
 
-  /* AS CIDADES — check-in do evento deste mês e compra do próximo, da
-     lista que a Jennifer mandou em 14/10/2026, mais Campinas, Pelotas, Belém
-     e Aracaju, que chegaram em 16/10/2026. Para adicionar uma cidade,
-     acrescente uma linha; a ordem aqui é a ordem na tela (por data). */
+  /* AS CIDADES — uma linha por cidade, com o `slug` dela no site de Eventos e as
+     DATAS dos Summits, em ordem. Atualizado em 28/10/2026 com dezembro (lista do Matheus).
+     O portal escolhe sozinho, pela data de hoje, o PRÓXIMO evento de cada cidade
+     (a primeira data de hoje em diante): é dele o link de check-in e o de compra.
+     A data ANTERIOR é o lançamento — a APN daquele Summit abre as vendas do
+     próximo —, e a régua dos lotes conta a partir dela. Por isso a lista precisa
+     manter pelo menos o último evento que já passou.
+     Os links saem do padrão do site de Eventos, conferido nos 81 endereços de
+     outubro, novembro e dezembro (28/10/2026):
+       .../evento/igreen-summit-<slug>-<DD>-<MM>            compra
+       .../evento/igreen-summit-<slug>-<DD>-<MM>/checkin    check-in
+     Se um evento fugir do padrão, ponha o endereço em `links` na linha da cidade:
+       links: { '2026-12-13': 'https://eventos.igreenenergy.com.br/evento/...' }
+     TODO MÊS: acrescente a data do Summit seguinte no fim de `datas` (e, se quiser,
+     tire a mais antiga, deixando sempre a do último evento que já passou).
+     A ordem das linhas não importa: as listas da tela saem por data. */
   cidades: [
-    { nome: 'Campinas',       uf: 'SP', evento: '2026-10-17', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campinas-sp-17-10/checkin', proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campinas-sp-07-11' },
-    { nome: 'Pelotas',        uf: 'RS', evento: '2026-10-17', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-pelotas-rs-17-10/checkin', proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-pelotas-rs-07-11' },
-    { nome: 'Aracaju',        uf: 'SE', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-aracaju-se-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-aracaju-se-08-11' },
-    { nome: 'Belém',          uf: 'PA', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belem-pa-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belem-pa-08-11' },
-    { nome: 'Belo Horizonte', uf: 'MG', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-18-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-belo-horizonte-mg-08-11' },
-    { nome: 'Brasília',       uf: 'DF', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-brasilia-df-08-11' },
-    { nome: 'Curitiba',       uf: 'PR', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-curitiba-pr-08-11' },
-    { nome: 'Fortaleza',      uf: 'CE', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-fortaleza-ce-18-10/checkin',      proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-fortaleza-ce-08-11' },
-    { nome: 'Goiânia',        uf: 'GO', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-goiania-go-18-10/checkin',        proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-goiania-go-08-11' },
-    { nome: 'Maceió',         uf: 'AL', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-maceio-al-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-maceio-al-08-11' },
-    { nome: 'Manaus',         uf: 'AM', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-manaus-am-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-manaus-am-08-11' },
-    { nome: 'Palmas',         uf: 'TO', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-palmas-to-18-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-palmas-to-08-11' },
-    { nome: 'Porto Alegre',   uf: 'RS', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-porto-alegre-rs-18-10/checkin',   proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-porto-alegre-rs-08-11' },
-    { nome: 'São Luís',       uf: 'MA', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-luis-ma-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-luis-ma-08-11' },
-    { nome: 'São Paulo',      uf: 'SP', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-paulo-sp-18-10/checkin',      proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-sao-paulo-sp-08-11' },
-    { nome: 'Teresina',       uf: 'PI', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-teresina-pi-18-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-teresina-pi-08-11' },
-    { nome: 'Vitória',        uf: 'ES', evento: '2026-10-18', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-vitoria-es-18-10/checkin',        proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-vitoria-es-08-11' },
-    { nome: 'Campo Grande',   uf: 'MS', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campo-grande-ms-24-10/checkin',   proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-campo-grande-ms-08-11' },
-    { nome: 'Florianópolis',  uf: 'SC', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-florianopolis-sc-24-10/checkin',  proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-florianopolis-sc-08-11' },
-    { nome: 'João Pessoa',    uf: 'PB', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-joao-pessoa-pb-24-10/checkin',    proximo: '2026-11-07', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-joao-pessoa-pb-07-11' },
-    { nome: 'Natal',          uf: 'RN', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-natal-rn-24-10/checkin',          proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-natal-rn-08-11' },
-    { nome: 'Recife',         uf: 'PE', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-recife-pe-24-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-recife-pe-08-11' },
-    { nome: 'Ribeirão Preto', uf: 'SP', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-ribeirao-preto-sp-24-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-ribeirao-preto-sp-08-11' },
-    { nome: 'Rio de Janeiro', uf: 'RJ', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-rio-de-janeiro-rj-24-10/checkin', proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-rio-de-janeiro-rj-08-11' },
-    { nome: 'Salvador',       uf: 'BA', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-salvador-ba-24-10/checkin',       proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-salvador-ba-08-11' },
-    { nome: 'Uberlândia',     uf: 'MG', evento: '2026-10-24', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-uberlandia-mg-24-10/checkin',     proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-uberlandia-mg-08-11' },
-    { nome: 'Cuiabá',         uf: 'MT', evento: '2026-10-25', checkin: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-25-10/checkin',         proximo: '2026-11-08', compra: 'https://eventos.igreenenergy.com.br/evento/igreen-summit-cuiaba-mt-08-11' }
+    { nome: 'Campinas',       uf: 'SP', slug: 'campinas-sp',       datas: ['2026-10-17', '2026-11-07', '2026-12-13'] },
+    { nome: 'Pelotas',        uf: 'RS', slug: 'pelotas-rs',        datas: ['2026-10-17', '2026-11-07', '2026-12-12'] },
+    { nome: 'Aracaju',        uf: 'SE', slug: 'aracaju-se',        datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Belém',          uf: 'PA', slug: 'belem-pa',          datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Belo Horizonte', uf: 'MG', slug: 'belo-horizonte-mg', datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Brasília',       uf: 'DF', slug: 'brasilia-df',       datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Curitiba',       uf: 'PR', slug: 'curitiba-pr',       datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Fortaleza',      uf: 'CE', slug: 'fortaleza-ce',      datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Goiânia',        uf: 'GO', slug: 'goiania-go',        datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Maceió',         uf: 'AL', slug: 'maceio-al',         datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Manaus',         uf: 'AM', slug: 'manaus-am',         datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Palmas',         uf: 'TO', slug: 'palmas-to',         datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Porto Alegre',   uf: 'RS', slug: 'porto-alegre-rs',   datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'São Luís',       uf: 'MA', slug: 'sao-luis-ma',       datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'São Paulo',      uf: 'SP', slug: 'sao-paulo-sp',      datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Teresina',       uf: 'PI', slug: 'teresina-pi',       datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Vitória',        uf: 'ES', slug: 'vitoria-es',        datas: ['2026-10-18', '2026-11-08', '2026-12-13'] },
+    { nome: 'Campo Grande',   uf: 'MS', slug: 'campo-grande-ms',   datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Florianópolis',  uf: 'SC', slug: 'florianopolis-sc',  datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'João Pessoa',    uf: 'PB', slug: 'joao-pessoa-pb',    datas: ['2026-10-24', '2026-11-07', '2026-12-12'] },
+    { nome: 'Natal',          uf: 'RN', slug: 'natal-rn',          datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Recife',         uf: 'PE', slug: 'recife-pe',         datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Ribeirão Preto', uf: 'SP', slug: 'ribeirao-preto-sp', datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Rio de Janeiro', uf: 'RJ', slug: 'rio-de-janeiro-rj', datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Salvador',       uf: 'BA', slug: 'salvador-ba',       datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Uberlândia',     uf: 'MG', slug: 'uberlandia-mg',     datas: ['2026-10-24', '2026-11-08', '2026-12-13'] },
+    { nome: 'Cuiabá',         uf: 'MT', slug: 'cuiaba-mt',         datas: ['2026-10-25', '2026-11-08', '2026-12-13'] }
   ],
 
   /* OS FORNECEDORES — da planilha "Contato LOCAL SUMMIT OUTUBRO.xlsx" (14/10/2026):
@@ -1325,6 +1338,9 @@ const DADOS = {
      Grafias corrigidas da planilha: "Aracajú" -> Aracaju, e três nomes em caixa alta.
      Para pôr outro fornecedor na cidade, acrescente na lista `contatos`:
        { tipo: 'Audiovisual', nome: 'Fulano Som e Luz', telefone: '31 99999-0000', obs: 'técnico do dia' } */
+  /* de qual Summit são os contatos abaixo. Enquanto não for o mês dos próximos
+     eventos, a aba Contatos avisa que o local pode ter mudado. */
+  fornecedoresDe: '2026-10',
   fornecedores: [
     { cidade: 'Aracaju',        uf: 'SE', contatos: [ { tipo: 'Local do evento', nome: 'Arcus', telefone: '79 9175 0034' } ] },
     { cidade: 'Belo Horizonte', uf: 'MG', contatos: [ { tipo: 'Local do evento', nome: 'Royal Center', telefone: '3121020000' } ] },
@@ -1479,11 +1495,40 @@ const DADOS = {
   })();
   const diasAte = dt => Math.round((dt - HOJE) / 864e5);
 
-  /* A RÉGUA DOS LOTES de uma cidade. Lançamento = o Summit deste mês
-     (c.evento); à venda = o próximo (c.proximo). Um lote cuja janela
-     ficou vazia (próximo evento no mesmo mês do lançamento) é pulado. */
+  /* O EVENTO DE CADA CIDADE HOJE — de `datas`, ver o comentário de `cidades`.
+     Escreve na própria cidade os quatro campos que o resto do script lê:
+     `evento` (o próximo Summit: check-in e compra), `lancamento` (o anterior),
+     `checkin` e `compra`. No dia do evento ele ainda é o "próximo"; no dia
+     seguinte, passa para o mês de depois. */
+  const URL_EVENTOS = 'https://eventos.igreenenergy.com.br/evento/igreen-summit-';
+  const MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  D.cidades.forEach(c => {
+    const ds = c.datas.slice().sort();
+    let k = ds.findIndex(d => dia(d) >= HOJE);
+    if (k < 0) k = ds.length - 1;                       // todos já passaram: fica o último
+    const url = d => (c.links && c.links[d]) || URL_EVENTOS + c.slug + '-' + d.slice(8, 10) + '-' + d.slice(5, 7);
+    c.evento = ds[k];
+    c.lancamento = k > 0 ? ds[k - 1] : null;
+    c.compra = url(ds[k]);
+    c.checkin = url(ds[k]) + '/checkin';
+  });
+  D.cidades.sort((a, b) => a.evento.localeCompare(b.evento));   // estável: no mesmo dia, a ordem da lista
+  /* a edição do topo é o mês que mais aparece entre os próximos eventos */
+  D.edicao = (() => {
+    const conta = {};
+    D.cidades.forEach(c => { const m = c.evento.slice(0, 7); conta[m] = (conta[m] || 0) + 1; });
+    const m = Object.keys(conta).sort((a, b) => conta[b] - conta[a])[0];
+    return 'iGreen Summit · ' + MES[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4);
+  })();
+
+  /* A RÉGUA DOS LOTES de uma cidade. Lançamento = o Summit anterior
+     (c.lancamento); à venda = o próximo (c.evento). Um lote cuja janela
+     ficou vazia (próximo evento no mesmo mês do lançamento) é pulado.
+     Sem lançamento conhecido (cidade com uma data só), sai só o dia do evento. */
   function lotesDe(c){
-    const lanc = dia(c.evento), ev = dia(c.proximo), vespera = somaDias(ev, -1);
+    const ev = dia(c.evento), vespera = somaDias(ev, -1);
+    if (!c.lancamento) return [{ ...D.lotes[D.lotes.length - 1], de: ev, ate: ev }];
+    const lanc = dia(c.lancamento);
     const fim2 = fimDoMes(lanc) < vespera ? fimDoMes(lanc) : vespera;
     const ini3 = inicioMesSeguinte(lanc);
     const janelas = [
@@ -1581,7 +1626,7 @@ const DADOS = {
     const quando = n > 1 ? '<span class="faltam">faltam ' + n + ' dias</span>'
                  : n === 1 ? '<span class="faltam">é amanhã</span>'
                  : n === 0 ? '<span class="faltam">é hoje!</span>'
-                 : 'já aconteceu — próximo: <b>' + ddmm(dia(cidade.proximo)) + '</b>';
+                 : 'já aconteceu — o próximo ainda não está no portal';
     el.innerHTML = 'Summit <b>' + esc(cidade.nome) + '</b>: ' + SEMANA[ev.getDay()] + ', <b>' + ddmm(ev) + '</b> · check-in ' + D.horario.checkin + ' · ' + quando;
   }
 
@@ -1591,7 +1636,7 @@ const DADOS = {
       el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima: aparece o lote vigente hoje, as datas de cada lote e o link de compra do próximo Summit da cidade.</p>';
       return;
     }
-    const lotes = lotesDe(cidade), ev = dia(cidade.proximo), lanc = dia(cidade.evento);
+    const lotes = lotesDe(cidade), ev = dia(cidade.evento), lanc = cidade.lancamento ? dia(cidade.lancamento) : ev;
     const iAgora = lotes.findIndex(l => HOJE >= l.de && HOJE <= l.ate);
     let estado;
     if (HOJE < lanc) estado = '<span class="estado espera">Vendas abrem em ' + ddmm(lanc) + ', no fim da APN</span>';
@@ -1610,7 +1655,7 @@ const DADOS = {
         btnCopiar(cidade.compra, 'Copiar link') +
         '<a class="mini" href="' + esc(zap('Ingressos do iGreen Summit ' + rotuloCidade(cidade) + ' (' + ddmm(ev) + '): ' + cidade.compra)) + '" target="_blank" rel="noopener">' + ic('conversa') + 'Mandar no WhatsApp</a>' +
       '</div>' +
-      '<p class="txt" style="margin-top:14px;font-size:13.5px">O lançamento é o Summit de ' + ddmm(lanc) + ': as vendas abrem no fim da APN, quando o VIP escolhe o estado no mapa.</p>';
+      '<p class="txt" style="margin-top:14px;font-size:13.5px">' + (cidade.lancamento ? 'O lançamento foi o Summit de ' + ddmm(lanc) + ': as vendas abriram no fim da APN dele, quando o VIP escolheu o estado no mapa.' : 'As vendas abrem no fim da APN do Summit anterior, quando o VIP escolhe o estado no mapa.') + '</p>';
   }
 
   function pintaMeuCheckin(){
@@ -1657,14 +1702,22 @@ const DADOS = {
         (t.movel ? '<a class="mini" href="https://wa.me/' + t.num + '" target="_blank" rel="noopener">' + ic('conversa') + 'WhatsApp</a>' : '') +
       '</div>' : '') + '</div>';
   }
+  /* contatos de um mês que não é o dos próximos eventos: o aviso diz de quando são */
+  function avisoContatos(){
+    const m = D.fornecedoresDe, prox = cidade ? cidade.evento.slice(0, 7) : D.cidades[0].evento.slice(0, 7);
+    if (!m || m === prox) return '';
+    return '<p class="obs" style="margin-top:14px">Locais e contatos do <b>Summit de ' + MES[+m.slice(5, 7) - 1].toLowerCase() +
+      '</b>. O do próximo evento pode ser outro: confirme antes de ligar.</p>';
+  }
   const contatosDe = c => (D.fornecedores.find(f => f.cidade === c.nome && f.uf === c.uf) || {}).contatos || [];
   const semContato = '<p class="txt">Contatos em atualização. Assim que o contato desta cidade chegar, ele aparece aqui.</p>';
   function pintaMeusContatos(){
     const el = $('#meus-contatos');
     if (!cidade){ el.innerHTML = '<h3>Escolha a sua cidade</h3><p>Use o seletor acima para ver o local do evento e o contato da sua cidade.</p>'; return; }
     const lista = contatosDe(cidade);
+    const aviso = avisoContatos();
     el.innerHTML = '<span class="quem">Contatos</span><h3 style="margin-top:6px;font-size:22px;margin-bottom:8px">' + esc(rotuloCidade(cidade)) + '</h3>' +
-      (lista.length ? lista.map(contatoHTML).join('') : semContato);
+      (lista.length ? lista.map(contatoHTML).join('') : semContato) + aviso;
   }
 
   /* ---------- AS LISTAS DE TODAS AS CIDADES ---------- */
@@ -1676,7 +1729,7 @@ const DADOS = {
     const tag = c => eMinha(c) ? ' <em class="tag-minha">Sua cidade</em>' : '';
     const compra = D.cidades.filter(c => passa(c, filtros.compra));
     $('#lista-compra').innerHTML = compra.length ? compra.map(c => {
-      const ev = dia(c.proximo);
+      const ev = dia(c.evento);
       return '<li' + minha(c) + '><span class="c-nome">' + esc(rotuloCidade(c)) + tag(c) + '<small>' + SEMANA[ev.getDay()] + ', ' + ddmm(ev) + '</small></span>' +
         '<span class="c-acoes">' + btnCopiar(c.compra) + btnAbrir(c.compra, 'Comprar', true) + '</span></li>';
     }).join('') : '<li class="vazio">Nenhuma cidade com esse nome.</li>';
@@ -1690,6 +1743,7 @@ const DADOS = {
        `cidades` (23): a busca também acha pelo nome do local */
     const fs = D.fornecedores.slice().sort((a, b) => a.cidade.localeCompare(b.cidade, 'pt-BR')).filter(f => !filtros.contatos ||
       normal(f.cidade + ' ' + f.uf + ' ' + f.contatos.map(x => x.nome).join(' ')).includes(normal(filtros.contatos)));
+    $('#contatos-aviso').innerHTML = avisoContatos();
     $('#contatos-todos').innerHTML = fs.length ? fs.map(f => {
       const sua = eMinha({ nome: f.cidade, uf: f.uf });
       return '<li' + (sua ? ' class="minha"' : '') + '><span class="c-nome">' + esc(f.cidade + ' – ' + f.uf) +
